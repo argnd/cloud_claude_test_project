@@ -1,5 +1,5 @@
 [package]
-name = "dungeon_crawler"
+name = "emberdeep"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
@@ -8,9 +8,28 @@ rust-version = "1.95"
 eframe = "0.36.2"
 rand = "0.10.2"
 image = "0.25.10"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+rodio = { version = "0.22.2", default-features = false, features = ["playback"], optional = true }
 
 # Smaller, faster exe for `cargo build --release`; debug builds are untouched.
 [profile.release]
 lto = true
 codegen-units = 1
 strip = true
+
+[features]
+default = ["audio"]
+# Music and sound through the system audio device. Linux builds need the ALSA
+# headers (libasound2-dev); build with --no-default-features to go silent.
+audio = ["dep:rodio"]
+
+# Optimised but quick to build: for the automated playthrough test
+# (`cargo test --profile bot playthrough -- --ignored --nocapture`).
+[profile.bot]
+inherits = "release"
+lto = false
+codegen-units = 16
+strip = false
+debug-assertions = true
+overflow-checks = true
