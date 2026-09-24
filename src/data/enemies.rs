@@ -227,17 +227,19 @@ pub fn random_group(floor: u32, rng: &mut impl Rng) -> Vec<(EnemyId, u32)> {
         })
         .collect();
     let (min, max) = match floor {
-        1..=2 => (1, 2),
-        3..=5 => (1, 3),
+        1..=3 => (1, 2),
+        4..=5 => (1, 3),
         6..=8 => (2, 3),
         _ => (2, 4),
     };
     let count = rng.random_range(min..=max);
     let base = floor_level(floor);
+    // Early floors are walked alone: no over-levelled surprises there.
+    let spread = if floor <= 4 { -1..=0 } else { -1..=1 };
     (0..count)
         .map(|_| {
             let enemy = pool[rng.random_range(0..pool.len())];
-            let level = (base as i32 + rng.random_range(-1..=1)).max(1) as u32;
+            let level = (base as i32 + rng.random_range(spread.clone())).max(1) as u32;
             (enemy, level)
         })
         .collect()
@@ -286,7 +288,7 @@ impl BattleId {
         use EnemyId as E;
         match self {
             BattleId::Vex => vec![(E::Smuggler, 5), (E::VexHarlan, 6), (E::Smuggler, 5)],
-            BattleId::Gristlemaw => vec![(E::SewerRat, 6), (E::Gristlemaw, 8), (E::SewerRat, 6)],
+            BattleId::Gristlemaw => vec![(E::SewerRat, 5), (E::Gristlemaw, 8)],
             BattleId::Curator => vec![(E::HauntedTome, 13), (E::Curator, 15), (E::HauntedTome, 13)],
             BattleId::MotherOfSpores => vec![(E::Sporeling, 22), (E::MotherOfSpores, 24), (E::Sporeling, 22)],
             BattleId::IronWarden => vec![(E::AshThrall, 29), (E::IronWarden, 31), (E::AshThrall, 29)],

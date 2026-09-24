@@ -213,7 +213,25 @@ impl Dialogue {
                     Style::Memory => Color32::from_rgba_unmultiplied(10, 22, 40, 225),
                     _ => Color32::from_rgba_unmultiplied(4, 3, 6, 235),
                 };
-                painter.rect_filled(screen, CornerRadius::ZERO, overlay);
+                // Each ending has its own light.
+                let wash = match self.runner.scene.as_str() {
+                    s if s.starts_with("ending_dawn") => Some((Color32::from_rgb(34, 22, 58), Color32::from_rgb(150, 96, 40))),
+                    s if s.starts_with("ending_oath") => Some((Color32::from_rgb(20, 8, 6), Color32::from_rgb(110, 44, 12))),
+                    s if s.starts_with("ending_dark") => Some((Color32::from_rgb(4, 6, 14), Color32::from_rgb(24, 36, 60))),
+                    _ => None,
+                };
+                if let Some((top, bottom)) = wash {
+                    gfx::gradient(painter, screen, top, bottom);
+                    let t = time as f32;
+                    for i in 0..30 {
+                        let f = i as f32 * 3.7;
+                        let x = screen.left() + ((f.sin() * 9973.0).fract().abs()) * screen.width();
+                        let y = screen.bottom() - ((t * (10.0 + (i % 4) as f32 * 6.0) + i as f32 * 71.0) % screen.height());
+                        painter.circle_filled(pos2(x, y), 1.5 + (i % 3) as f32, Color32::from_rgba_unmultiplied(bottom.r().saturating_add(80), bottom.g().saturating_add(80), bottom.b().saturating_add(60), 110));
+                    }
+                } else {
+                    painter.rect_filled(screen, CornerRadius::ZERO, overlay);
+                }
                 if style == Style::Memory {
                     // Drifting motes of remembered light.
                     for i in 0..40 {

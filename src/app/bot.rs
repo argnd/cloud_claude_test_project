@@ -364,7 +364,29 @@ fn playthrough() {
             stuck = 0;
             last_pos = pos;
         }
-        assert!(stuck < 4000, "bot stuck on floor {floor} at {:?}\n{report}", game.world.player);
+        if stuck >= 4000 {
+            let goal = target(game);
+            let near: Vec<String> = game
+                .world
+                .entities
+                .iter()
+                .filter(|e| (e.pos.0 - game.world.player.0).abs() + (e.pos.1 - game.world.player.1).abs() <= 3)
+                .map(|e| format!("{:?}@{:?}", e.kind, e.pos))
+                .collect();
+            let tiles: Vec<String> = Dir::ALL
+                .iter()
+                .map(|d| {
+                    let (dx, dy) = d.delta();
+                    format!("{d:?}:{:?}", game.world.tile((game.world.player.0 + dx, game.world.player.1 + dy)))
+                })
+                .collect();
+            panic!(
+                "bot stuck on floor {floor} at {:?} (tile {:?}), goal {goal:?}, step {:?}, around {tiles:?}, near {near:#?}\n{report}",
+                game.world.player,
+                game.world.tile(game.world.player),
+                goal.and_then(|g| step_towards(&game.world, g)),
+            );
+        }
         // A monster right next to us gets hit first.
         let adjacent = Dir::ALL.into_iter().find(|d| {
             let (dx, dy) = d.delta();

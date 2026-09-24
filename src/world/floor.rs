@@ -113,6 +113,20 @@ pub fn build(floor: u32, seed: u64, flags: &BTreeSet<String>) -> World {
         .collect();
     rooms.sort_by_key(|(d, _)| *d);
     let room_tiles = |r: &Room| -> Vec<(i32, i32)> { r.squares().into_iter().map(|(x, y)| (x as i32, y as i32)).collect() };
+    // Tiles strictly inside a room: things placed there can never plug a
+    // doorway or a corridor.
+    let mut in_room = vec![false; (w * h) as usize];
+    for r in &dungeon.rooms {
+        for (x, y) in r.squares() {
+            in_room[world.idx((x as i32, y as i32))] = true;
+        }
+    }
+    let interior = move |world: &World, p: (i32, i32)| {
+        (-1..=1).all(|dy| (-1..=1).all(|dx| {
+            let q = (p.0 + dx, p.1 + dy);
+            world.in_bounds(q) && in_room[world.idx(q)]
+        }))
+    };
 
     // A free floor tile in a room, preferring far rooms when `far`.
     let take_spot = |world: &World, rng: &mut StdRng, far: bool| -> Option<(i32, i32)> {
@@ -120,21 +134,32 @@ pub fn build(floor: u32, seed: u64, flags: &BTreeSet<String>) -> World {
             return None;
         }
         let n = rooms.len();
-        for _ in 0..40 {
+        for _ in 0..80 {
             let k = if far { rng.random_range(n / 2..n) } else { rng.random_range(0..n) };
             let tiles = room_tiles(&rooms[k].1);
             let p = tiles[rng.random_range(0..tiles.len())];
-            if world.tile(p) == Tile::Floor && world.entity_at(p).is_none() && p != start && p != stairs {
+            if world.tile(p) == Tile::Floor
+                && world.entity_at(p).is_none()
+                && p != start
+                && p != stairs
+                && interior(world, p)
+                && safe_to_block(world, start, p)
+            {
                 return Some(p);
             }
         }
         None
     };
 
-    dress(&mut world, biome, &dungeon.rooms, &mut rng);
+    dress(&mut world, biome, &dungeon.rooms, start, &mut rng);
 
-    // Waystone beside the arrival point.
-    if let Some(p) = world.free_neighbour(start) {
+    // Waystone beside the arrival point, never in anyone's way.
+    let ring = [(1, 1), (-1, -1), (1, -1), (-1, 1), (1, 0), (-1, 0), (0, 1), (0, -1)];
+    if let Some(p) = ring
+        .iter()
+        .map(|&(dx, dy)| (start.0 + dx, start.1 + dy))
+        .find(|&q| world.tile(q) == Tile::Floor && world.entity_at(q).is_none() && safe_to_block(&world, start, q))
+    {
         world.entities.push(Entity { pos: p, kind: EntityKind::Waystone });
     }
 
@@ -262,8 +287,47 @@ pub fn build(floor: u32, seed: u64, flags: &BTreeSet<String>) -> World {
     world
 }
 
+/// How many tiles can be walked to from `start`, treating permanent
+/// obstacles (anything blocking that isn't a monster or boss) as walls.
+fn reachable_count(world: &World, start: (i32, i32), extra_wall: Option<(i32, i32)>) -> usize {
+    let mut walls = vec![false; (world.w * world.h) as usize];
+    for e in &world.entities {
+        if e.blocks() && !matches!(e.kind, EntityKind::Monster { .. } | EntityKind::Boss { .. }) {
+            walls[world.idx(e.pos)] = true;
+        }
+    }
+    if let Some(p) = extra_wall {
+        walls[world.idx(p)] = true;
+    }
+    let mut seen = vec![false; walls.len()];
+    let mut stack = vec![start];
+    seen[world.idx(start)] = true;
+    let mut count = 0;
+    while let Some(p) = stack.pop() {
+        count += 1;
+        for d in super::Dir::ALL {
+            let (dx, dy) = d.delta();
+            let q = (p.0 + dx, p.1 + dy);
+            if !world.in_bounds(q) || seen[world.idx(q)] || walls[world.idx(q)] {
+                continue;
+            }
+            let t = world.tile(q);
+            if t.walkable() || t == Tile::Door {
+                seen[world.idx(q)] = true;
+                stack.push(q);
+            }
+        }
+    }
+    count
+}
+
+/// Putting something solid on `p` leaves every other tile reachable.
+pub fn safe_to_block(world: &World, start: (i32, i32), p: (i32, i32)) -> bool {
+    p != start && reachable_count(world, start, Some(p)) + 1 == reachable_count(world, start, None)
+}
+
 /// Biome decoration: torches, puddles, bookshelves, glowing fungus, lava, ice.
-fn dress(world: &mut World, biome: Biome, rooms: &[Room], rng: &mut StdRng) {
+fn dress(world: &mut World, biome: Biome, rooms: &[Room], start: (i32, i32), rng: &mut StdRng) {
     let (w, h) = (world.w, world.h);
     let is_room: Vec<bool> = {
         let mut v = vec![false; (w * h) as usize];
@@ -314,6 +378,9 @@ fn dress(world: &mut World, biome: Biome, rooms: &[Room], rng: &mut StdRng) {
                 Biome::Town => continue,
             };
             let blocks = matches!(sprite, Sprite::Brazier);
+            if blocks && !safe_to_block(world, start, p) {
+                continue;
+            }
             world.entities.push(Entity { pos: p, kind: EntityKind::Decor { sprite, light, blocks } });
         }
         // Pools: shallow water in the Archive, isolated lava in the Forge.

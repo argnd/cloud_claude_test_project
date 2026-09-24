@@ -111,6 +111,9 @@ impl App {
         if let Some(floor) = jump {
             app.jump(floor);
             let args: Vec<String> = std::env::args().collect();
+            if args.iter().any(|a| a == "--battle" || a == "--boss") {
+                app.dialogues.clear();
+            }
             if args.iter().any(|a| a == "--battle") {
                 let group = crate::data::enemies::random_group(floor, &mut app.rng);
                 app.start_battle(group, BattleKind::Normal, None, None);

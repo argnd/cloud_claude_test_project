@@ -3,8 +3,23 @@ use std::collections::BTreeSet;
 use super::floor::{self, LAST_FLOOR};
 use super::*;
 
+/// Walking distances from the arrival point, treating every permanent
+/// obstacle (chests, braziers, people, waystones) as solid. Monsters and
+/// bosses aren't: they can be fought through.
+fn distances_around_things(world: &World) -> Vec<i32> {
+    let mut blocked = world.clone();
+    for e in &world.entities {
+        let fightable = matches!(e.kind, EntityKind::Monster { .. } | EntityKind::Boss { .. });
+        if e.blocks() && !fightable && e.pos != world.arrival {
+            blocked.set(e.pos, Tile::Wall);
+        }
+    }
+    // Doors and walkable tiles only.
+    blocked.distances_from(world.arrival, 100_000)
+}
+
 fn reachable(world: &World, p: (i32, i32)) -> bool {
-    let dist = world.distances_from(world.arrival, 100_000);
+    let dist = distances_around_things(world);
     // Entities that block stand on reachable tiles if a neighbour is reachable.
     Dir::ALL.iter().any(|d| {
         let (dx, dy) = d.delta();
@@ -32,7 +47,7 @@ fn the_town_is_well_formed() {
 fn every_floor_is_connected_and_populated() {
     let flags = BTreeSet::new();
     for n in 1..=LAST_FLOOR {
-        for seed in [1u64, 77] {
+        for seed in [1u64, 77, 2024, 31337] {
             let world = floor::build(n, seed, &flags);
             let monsters = world.entities.iter().filter(|e| matches!(e.kind, EntityKind::Monster { .. })).count();
             assert!(monsters >= 6, "floor {n}: only {monsters} monsters");
@@ -88,3 +103,4 @@ fn walking_opens_doors_and_monsters_chase() {
     }
     assert_eq!(touched, Some(0));
 }
+

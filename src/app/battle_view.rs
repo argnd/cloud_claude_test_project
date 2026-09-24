@@ -203,8 +203,6 @@ impl BattleView {
         let speed = speed * if input.fast { 2.5 } else { 1.0 };
         let sdt = dt * speed;
         self.intro_t += dt;
-        self.flash = (self.flash - dt * 2.5).max(0.0);
-        self.shake = (self.shake - dt * 30.0).max(0.0);
         for v in &mut self.vis {
             v.lunge = (v.lunge + sdt / 0.34).min(1.0);
             v.cast = (v.cast + sdt / 0.45).min(1.0);
@@ -552,6 +550,9 @@ impl BattleView {
 
     #[allow(clippy::too_many_arguments)]
     pub fn draw(&mut self, painter: &egui::Painter, gfx: &Gfx, screen: Rect, input: &mut Input, game: &mut Game, audio: &mut Audio, time: f64) {
+        // Screen effects fade even while a scene plays over the battle.
+        self.flash = (self.flash - input.dt * 2.5).max(0.0);
+        self.shake = (self.shake - input.dt * 30.0).max(0.0);
         let shake = if self.shake > 0.0 { vec2(((time * 90.0).sin() as f32) * self.shake, ((time * 70.0).cos() as f32) * self.shake * 0.5) } else { vec2(0.0, 0.0) };
         let field = screen.translate(shake);
         self.draw_background(painter, gfx, screen, time);
@@ -1077,7 +1078,7 @@ impl BattleView {
         let Some(r) = &self.rewards else { return };
         let a = (r.age / 0.4).min(1.0);
         painter.rect_filled(screen, CornerRadius::ZERO, Color32::from_black_alpha((120.0 * a) as u8));
-        let lines = 3 + r.items.len().min(6) + r.level_ups.len() * 2;
+        let lines = 1 + r.items.len().min(6) + r.level_ups.len() * 2;
         let rect = Rect::from_center_size(screen.center(), vec2(560.0, 150.0 + lines as f32 * 30.0));
         gfx::panel(painter, rect);
         gfx::text(painter, pos2(rect.center().x, rect.top() + 40.0), Align2::CENTER_CENTER, "Victory!", gfx::title_font(44.0), GOLD);
