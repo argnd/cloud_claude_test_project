@@ -144,8 +144,7 @@ impl Dialogue {
                     }
                 }
                 let complete = self.shown >= len;
-                let visible: String = text.chars().take(self.shown as usize).collect();
-                self.draw_line(painter, gfx, screen, style, speaker, &visible, complete, time);
+                self.draw_line(painter, gfx, screen, style, speaker, text, self.shown as usize, complete, time);
                 if (input.confirm || input.click) && self.line_age > 0.12 {
                     if !complete {
                         self.shown = len;
@@ -182,7 +181,7 @@ impl Dialogue {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn draw_line(&self, painter: &egui::Painter, gfx: &Gfx, screen: Rect, style: Style, speaker: &str, text: &str, complete: bool, time: f64) {
+    fn draw_line(&self, painter: &egui::Painter, gfx: &Gfx, screen: Rect, style: Style, speaker: &str, text: &str, shown: usize, complete: bool, time: f64) {
         let (name, portrait) = story::speaker_info(speaker).unwrap_or(("", None));
         let blink = ((time * 3.0) as i64 % 2 == 0) && complete;
         match style {
@@ -204,7 +203,7 @@ impl Dialogue {
                 }
                 let font = if speaker == "narrator" { gfx::italic_font(25.0) } else { gfx::body_font(25.0) };
                 let colour = if speaker == "narrator" { Color32::from_rgb(210, 200, 230) } else { PARCHMENT };
-                gfx::wrapped(painter, pos2(text_left, rect.top() + 30.0), rect.right() - text_left - 30.0, text, font, colour);
+                gfx::reveal(painter, pos2(text_left, rect.top() + 30.0), rect.right() - text_left - 30.0, text, shown, font, colour, false);
                 if blink {
                     gfx::triangle(painter, rect.right_bottom() - vec2(26.0, 20.0), 14.0, true, GOLD);
                 }
@@ -234,7 +233,7 @@ impl Dialogue {
                     painter.rect_stroke(page, CornerRadius::same(4), Stroke::new(2.0, Color32::from_rgb(120, 90, 60)), egui::StrokeKind::Inside);
                     gfx::text(painter, pos2(page.center().x, page.top() + 36.0), Align2::CENTER_CENTER, "From Ilsa's journal", gfx::heading_font(20.0), Color32::from_rgb(110, 70, 40));
                     let est = painter.layout(text.to_string(), gfx::italic_font(27.0), Color32::BLACK, width).size().y;
-                    gfx::centred(painter, page.center().x, page.center().y - est / 2.0 + 10.0, width, text, gfx::italic_font(27.0), Color32::from_rgb(50, 36, 30));
+                    gfx::reveal(painter, pos2(page.center().x, page.center().y - est / 2.0 + 10.0), width, text, shown, gfx::italic_font(27.0), Color32::from_rgb(50, 36, 30), true);
                     if blink {
                         gfx::triangle(painter, page.right_bottom() - vec2(30.0, 24.0), 14.0, true, Color32::from_rgb(110, 70, 40));
                     }
@@ -251,7 +250,7 @@ impl Dialogue {
                 }
                 let font = if speaker == "narrator" || speaker == "lira" { gfx::italic_font(29.0) } else { gfx::body_font(28.0) };
                 let colour = if style == Style::Memory { Color32::from_rgb(214, 230, 255) } else { PARCHMENT };
-                gfx::centred(painter, screen.center().x, y, width, text, font, colour);
+                gfx::reveal(painter, pos2(screen.center().x, y), width, text, shown, font, colour, true);
                 if blink {
                     gfx::triangle(painter, pos2(screen.center().x, screen.bottom() - 50.0), 16.0, true, GOLD);
                 }

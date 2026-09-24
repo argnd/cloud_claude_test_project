@@ -83,7 +83,8 @@ fn step_towards(world: &World, goal: (i32, i32)) -> Option<Dir> {
             }
             let t = world.tile(q);
             let passable = t.walkable() || t == Tile::Door;
-            let blocked = q != goal && world.entities.iter().any(|e| e.pos == q && e.blocks());
+            // Monsters in the way just get fought.
+            let blocked = q != goal && world.entities.iter().any(|e| e.pos == q && e.blocks() && !matches!(e.kind, EntityKind::Monster { .. }));
             if !passable && q != goal || blocked {
                 continue;
             }
@@ -128,7 +129,7 @@ fn path_distances(world: &World) -> Vec<i32> {
                 continue;
             }
             dist[world.idx(q)] = d + 1;
-            if !world.entities.iter().any(|e| e.pos == q && e.blocks()) {
+            if !world.entities.iter().any(|e| e.pos == q && e.blocks() && !matches!(e.kind, EntityKind::Monster { .. })) {
                 queue.push_back(q);
             }
         }
@@ -364,6 +365,17 @@ fn playthrough() {
             last_pos = pos;
         }
         assert!(stuck < 4000, "bot stuck on floor {floor} at {:?}\n{report}", game.world.player);
+        // A monster right next to us gets hit first.
+        let adjacent = Dir::ALL.into_iter().find(|d| {
+            let (dx, dy) = d.delta();
+            let q = (game.world.player.0 + dx, game.world.player.1 + dy);
+            game.world.entities.iter().any(|e| e.pos == q && matches!(e.kind, EntityKind::Monster { .. }))
+        });
+        if let Some(dir) = adjacent {
+            d.frame(Some(key_for(dir)));
+            cooldown = 1;
+            continue;
+        }
         let Some(goal) = target(game) else {
             d.frame(None);
             continue;

@@ -119,6 +119,15 @@ impl App {
                     app.start_battle(b.formation(), BattleKind::Story(b), None, Some(b));
                 }
             }
+            // Debugging and screenshots: `--scene <id>`, `--shop`.
+            if let Some(scene) = args.iter().skip_while(|a| *a != "--scene").nth(1) {
+                app.dialogues.clear();
+                app.start_scene(scene);
+            }
+            if args.iter().any(|a| a == "--shop") {
+                app.dialogues.clear();
+                app.overlay = Some(Overlay::Shop(ShopView::new(Shop::Smith)));
+            }
         }
         app
     }
@@ -237,6 +246,11 @@ impl App {
         self.explore.area_title = Some((game.world.biome.name().to_string(), format!("Floor {n}"), 0.0));
         self.fade = 1.0;
         self.audio.play_sfx(Sfx::Stairs);
+        if n == 1 && !game.flag("tip_waystone") {
+            game.set_flag("tip_waystone");
+            self.explore.notice("Tip: waystones heal the party, save, and lead home.");
+            self.explore.notice("Tip: catch monsters from behind to strike first.");
+        }
         let scene = format!("floor_{n}_enter");
         let seen = game.flag(&format!("seen_{scene}"));
         self.restore_music();
@@ -274,7 +288,11 @@ impl App {
             u.stats.atk = (u.stats.atk as f32 * dmg) as i32;
             u.stats.mag = (u.stats.mag as f32 * dmg) as i32;
         }
-        let view = BattleView::new(battle, story, entity, game.world.biome);
+        let mut view = BattleView::new(battle, story, entity, game.world.biome);
+        if !game.flag("tip_battle") {
+            game.set_flag("tip_battle");
+            view.tip("Tip: hit weaknesses for 150% damage. Auto lets the party fight on its own.");
+        }
         self.audio.play_sfx(Sfx::Encounter);
         self.audio.play_music(view.music());
         self.battle = Some(view);
@@ -374,6 +392,7 @@ impl App {
             match next {
                 After::Scene(s) if s == "__arrive_town" => {
                     self.explore.area_title = Some(("Hollowmere".into(), "A village at the top of the world".into(), 0.0));
+                    self.explore.notice("Tip: walk into people to talk. Tab opens the party menu.");
                     self.restore_music();
                     self.autosave_due = true;
                 }

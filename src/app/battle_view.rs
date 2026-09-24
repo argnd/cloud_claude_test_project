@@ -163,6 +163,11 @@ impl BattleView {
         }
     }
 
+    /// A one-off hint shown under the banner.
+    pub fn tip(&mut self, text: &str) {
+        self.message = Some((text.to_string(), 6.0));
+    }
+
     pub fn music(&self) -> Track {
         match self.story {
             Some(BattleId::Aurelian) => Track::FinalBoss,

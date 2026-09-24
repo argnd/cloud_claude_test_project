@@ -131,8 +131,8 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
             return Action::Skill(s, Choice::All);
         }
         if ratio(worst) < 0.3 {
-            for item in [ItemId::Elixir, ItemId::Draught, ItemId::Tonic] {
-                if has_item(item) && worst == unit {
+            for item in [ItemId::Draught, ItemId::Tonic, ItemId::Elixir] {
+                if has_item(item) {
                     return Action::Item(item, Choice::Unit(worst));
                 }
             }
@@ -158,8 +158,10 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
                 return Action::Skill(SkillId::Siphon, Choice::Unit(foe));
             }
         }
-        if has_item(ItemId::Ether) && battle.is_boss() {
-            return Action::Item(ItemId::Ether, Choice::Unit(unit));
+        for ether in [ItemId::Ether, ItemId::HiEther] {
+            if has_item(ether) {
+                return Action::Item(ether, Choice::Unit(unit));
+            }
         }
     }
 

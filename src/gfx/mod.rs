@@ -277,12 +277,33 @@ pub fn diamond(painter: &egui::Painter, centre: Pos2, size: f32, colour: Color32
     painter.add(egui::Shape::convex_polygon(pts, colour, Stroke::new(1.0, Color32::from_black_alpha(160))));
 }
 
-/// Wrapped text, each line centred on `centre_x`. Returns the height used.
-pub fn centred(painter: &egui::Painter, centre_x: f32, top: f32, width: f32, s: &str, font: FontId, colour: Color32) -> f32 {
-    let mut job = egui::text::LayoutJob::simple(s.to_string(), font, colour, width);
-    job.halign = egui::Align::Center;
+
+/// Lays out all of `s` but only shows its first `shown` characters, so the
+/// words don't jump around while a typewriter effect reveals them.
+#[allow(clippy::too_many_arguments)]
+pub fn reveal(painter: &egui::Painter, pos: Pos2, width: f32, s: &str, shown: usize, font: FontId, colour: Color32, centre: bool) -> f32 {
+    let split = s.char_indices().nth(shown).map(|(i, _)| i).unwrap_or(s.len());
+    let mut job = egui::text::LayoutJob::default();
+    job.wrap.max_width = width;
+    if centre {
+        job.halign = egui::Align::Center;
+    }
+    let fmt = |c: Color32| egui::text::TextFormat { font_id: font.clone(), color: c, ..Default::default() };
+    job.append(&s[..split], 0.0, fmt(colour));
+    job.append(&s[split..], 0.0, fmt(Color32::TRANSPARENT));
+    let mut shadow_job = job.clone();
+    for section in &mut shadow_job.sections {
+        if section.format.color != Color32::TRANSPARENT {
+            section.format.color = Color32::from_black_alpha(150);
+        }
+    }
     let galley = painter.layout_job(job);
     let h = galley.size().y;
-    painter.galley(pos2(centre_x, top), galley, colour);
+    // Shadows help light text on dark; on parchment they only smudge.
+    if colour.r() as u32 + colour.g() as u32 + colour.b() as u32 > 300 {
+        let shadow = painter.layout_job(shadow_job);
+        painter.galley(pos + vec2(1.0, 1.5), shadow, Color32::BLACK);
+    }
+    painter.galley(pos, galley, colour);
     h
 }
