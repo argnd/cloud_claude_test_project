@@ -73,15 +73,9 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
+    #[cfg(test)]
     pub const ALL: [Algorithm; 3] = [Algorithm::Backtracker, Algorithm::Prim, Algorithm::Kruskal];
 
-    pub fn label(self) -> &'static str {
-        match self {
-            Algorithm::Backtracker => "Recursive backtracker (long winding corridors)",
-            Algorithm::Prim => "Prim (short branching corridors)",
-            Algorithm::Kruskal => "Kruskal (patchy corridors)",
-        }
-    }
 
     pub fn carve(self, lattice: &Lattice, rng: &mut impl Rng) -> Vec<Step> {
         match self {

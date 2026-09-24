@@ -4,9 +4,7 @@ use std::collections::VecDeque;
 pub enum Cell {
     Wall,
     Floor,
-    /// Closed doors block sight; bumping into one opens it.
     Door,
-    OpenDoor,
     /// Leads to the next, deeper level.
     Stairs,
 }
@@ -15,10 +13,6 @@ impl Cell {
     /// Anything that is not a wall can be walked on (a closed door opens first).
     pub fn walkable(self) -> bool {
         self != Cell::Wall
-    }
-
-    pub fn blocks_sight(self) -> bool {
-        matches!(self, Cell::Wall | Cell::Door)
     }
 }
 
