@@ -157,12 +157,12 @@ impl EnemyId {
 
             E::VexHarlan => &const { D { name: "Vex Harlan", sprite: Sprite::VexHarlan, shape: shape(5.5, 1.15, 1.0, 0.8, 0.9, 1.1), affinities: &[], skills: &[(K::Stab, 3), (K::Backstab, 2), (K::ThrowKnives, 2), (K::DirtyTrick, 1), (K::Rally, 1)], drops: &[(ItemId::Ether, 100)], reward: 6.0, floors: (0, 0), size: 3.4, boss: true } },
             E::Gristlemaw => &const { D { name: "Gristlemaw, the Rat King", sprite: Sprite::Gristlemaw, shape: shape(6.0, 1.2, 1.1, 0.8, 0.9, 0.9), affinities: &[(Fire, Weak)], skills: &[(K::Bite, 3), (K::Gnash, 2), (K::PlagueSqueal, 2), (K::CallTheSwarm, 1)], drops: &[(ItemId::EmberDown, 100)], reward: 8.0, floors: (0, 0), size: 5.5, boss: true } },
-            E::Curator => &const { D { name: "The Curator", sprite: Sprite::Curator, shape: shape(8.0, 0.8, 1.1, 1.25, 1.2, 1.0), affinities: &[(Light, Weak), (Fire, Weak), (Shadow, Resist), (Frost, Resist)], skills: &[(K::ShadowBolt, 3), (K::ForbiddenWord, 2), (K::InkTide, 2), (K::Erase, 1), (K::CallTheShelves, 1)], drops: &[(ItemId::HiEther, 100)], reward: 8.0, floors: (0, 0), size: 5.0, boss: true } },
-            E::MotherOfSpores => &const { D { name: "Mother of Spores", sprite: Sprite::MotherOfSpores, shape: shape(14.0, 1.2, 1.1, 1.3, 1.1, 0.8), affinities: &[(Fire, Weak), (Nature, Absorb)], skills: &[(K::RotBloom, 2), (K::MycelialGrasp, 3), (K::SporeCloud, 2), (K::SporeBrood, 1)], drops: &[(ItemId::Elixir, 100)], reward: 9.0, floors: (0, 0), size: 6.0, boss: true } },
-            E::IronWarden => &const { D { name: "The Iron Warden", sprite: Sprite::IronWarden, shape: shape(14.5, 1.35, 1.5, 1.1, 1.0, 0.85), affinities: &[(Frost, Weak), (Shock, Weak), (Fire, Immune), (Nature, Immune)], skills: &[(K::Slam, 3), (K::Forgefire, 2), (K::Hammerfall, 2), (K::IronBulwark, 1)], drops: &[(ItemId::Elixir, 100)], reward: 10.0, floors: (0, 0), size: 6.0, boss: true } },
-            E::IlsaPale => &const { D { name: "Ilsa, the Pale-Crowned", sprite: Sprite::IlsaPale, shape: shape(17.0, 1.45, 1.3, 1.45, 1.3, 1.3), affinities: &[(Frost, Absorb), (Light, Weak)], skills: &[(K::PaleBlade, 3), (K::CrownOfFrost, 2), (K::WintersEmbrace, 2), (K::Hesitation, 1), (K::Harden, 1)], drops: &[(ItemId::Elixir, 100)], reward: 11.0, floors: (0, 0), size: 4.5, boss: true } },
-            E::AurelianPale => &const { D { name: "The Pale", sprite: Sprite::Aurelian, shape: shape(15.0, 1.15, 1.3, 1.45, 1.3, 1.0), affinities: &[(Light, Weak), (Fire, Weak), (Shadow, Absorb), (Frost, Resist)], skills: &[(K::GriefTide, 3), (K::EndlessWinter, 2), (K::Hollowing, 2), (K::ShadowBolt, 2), (K::CallThePale, 1)], drops: &[], reward: 12.0, floors: (0, 0), size: 7.0, boss: true } },
-            E::AurelianTrue => &const { D { name: "Aurelian, the Grieving", sprite: Sprite::AurelianTrue, shape: shape(12.0, 1.15, 1.2, 1.5, 1.3, 1.1), affinities: &[(Light, Weak), (Shadow, Resist)], skills: &[(K::LullabyOfAsh, 2), (K::FrozenTears, 2), (K::LastEmbrace, 2), (K::Hollowing, 1)], drops: &[], reward: 14.0, floors: (0, 0), size: 5.0, boss: true } },
+            E::Curator => &const { D { name: "The Curator", sprite: Sprite::Curator, shape: shape(8.0, 0.8, 1.1, 1.15, 1.2, 1.0), affinities: &[(Light, Weak), (Fire, Weak), (Shadow, Resist), (Frost, Resist)], skills: &[(K::ShadowBolt, 3), (K::ForbiddenWord, 2), (K::InkTide, 2), (K::Erase, 1), (K::CallTheShelves, 1)], drops: &[(ItemId::HiEther, 100)], reward: 8.0, floors: (0, 0), size: 5.0, boss: true } },
+            E::MotherOfSpores => &const { D { name: "Mother of Spores", sprite: Sprite::MotherOfSpores, shape: shape(16.0, 1.35, 1.15, 1.45, 1.15, 0.85), affinities: &[(Fire, Weak), (Nature, Absorb)], skills: &[(K::RotBloom, 2), (K::MycelialGrasp, 3), (K::SporeCloud, 2), (K::SporeBrood, 1)], drops: &[(ItemId::Elixir, 100)], reward: 9.0, floors: (0, 0), size: 6.0, boss: true } },
+            E::IronWarden => &const { D { name: "The Iron Warden", sprite: Sprite::IronWarden, shape: shape(16.5, 1.4, 1.5, 1.15, 1.0, 0.85), affinities: &[(Frost, Weak), (Shock, Weak), (Fire, Immune), (Nature, Immune)], skills: &[(K::Slam, 3), (K::Forgefire, 2), (K::Hammerfall, 2), (K::IronBulwark, 1)], drops: &[(ItemId::Elixir, 100)], reward: 10.0, floors: (0, 0), size: 6.0, boss: true } },
+            E::IlsaPale => &const { D { name: "Ilsa, the Pale-Crowned", sprite: Sprite::IlsaPale, shape: shape(19.0, 1.5, 1.3, 1.5, 1.3, 1.3), affinities: &[(Frost, Absorb), (Light, Weak)], skills: &[(K::PaleBlade, 3), (K::CrownOfFrost, 2), (K::WintersEmbrace, 2), (K::Hesitation, 1), (K::Harden, 1)], drops: &[(ItemId::Elixir, 100)], reward: 11.0, floors: (0, 0), size: 4.5, boss: true } },
+            E::AurelianPale => &const { D { name: "The Pale", sprite: Sprite::Aurelian, shape: shape(10.0, 1.05, 1.25, 1.2, 1.25, 1.0), affinities: &[(Light, Weak), (Fire, Weak), (Shadow, Absorb), (Frost, Resist)], skills: &[(K::GriefTide, 3), (K::EndlessWinter, 2), (K::Hollowing, 2), (K::ShadowBolt, 2), (K::CallThePale, 1)], drops: &[], reward: 12.0, floors: (0, 0), size: 7.0, boss: true } },
+            E::AurelianTrue => &const { D { name: "Aurelian, the Grieving", sprite: Sprite::AurelianTrue, shape: shape(7.5, 1.15, 1.15, 1.45, 1.25, 1.05), affinities: &[(Light, Weak), (Shadow, Resist)], skills: &[(K::LullabyOfAsh, 2), (K::FrozenTears, 2), (K::LastEmbrace, 2), (K::Hollowing, 1)], drops: &[], reward: 14.0, floors: (0, 0), size: 5.0, boss: true } },
         }
     }
 
@@ -301,9 +301,5 @@ impl BattleId {
             BattleId::Aurelian => Some((EnemyId::AurelianTrue, 38)),
             _ => None,
         }
-    }
-
-    pub fn is_final(self) -> bool {
-        self == BattleId::Aurelian
     }
 }

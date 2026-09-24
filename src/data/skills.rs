@@ -743,7 +743,7 @@ impl SkillId {
                 S::new("Frozen Tears", "").mag(1.45).all().el(Frost).inflicts(&[(Slow, 40, 2)]).look(Sp::SkillFrost, Sp::FxFrost, Sfx::Frost)
             },
             K::LastEmbrace => &const {
-                S::new("Last Embrace", "").kind(SkillKind::Drain { power: Power::Mag(2.3) }).el(Shadow).delay(130).look(Sp::SkillShadow, Sp::FxShadow, Sfx::Shadow)
+                S::new("Last Embrace", "").mag(2.1).el(Shadow).delay(130).look(Sp::SkillShadow, Sp::FxShadow, Sfx::Shadow)
             },
         }
     }

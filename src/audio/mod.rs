@@ -210,6 +210,7 @@ impl Audio {
         });
     }
 
+    #[allow(dead_code)]
     pub fn stop_music(&mut self) {
         if self.current.take().is_some() {
             self.send(|| engine::Cmd::Music {

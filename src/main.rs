@@ -2,8 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
-#[cfg_attr(not(feature = "audio"), allow(dead_code))]
-#[path = "audio_stub.rs"]
 mod audio;
 mod battle;
 mod data;

@@ -67,6 +67,7 @@ impl Dialogue {
     }
 
     /// A menu of choices is on screen.
+    #[cfg(test)]
     pub fn is_choice(&self) -> bool {
         matches!(self.beat, Some(Beat::Choice(_)))
     }

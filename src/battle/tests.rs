@@ -252,3 +252,64 @@ fn balance_full_playthrough() {
 fn scale_xp(xp: u32, hero_level: u32, enemy_level: u32) -> u32 {
     crate::battle::xp_share(xp, hero_level, enemy_level)
 }
+
+/// Win rate of each boss against a party at the level and gear a player
+/// would have, with a modest bag of items, over many seeds. Prints a table.
+#[test]
+fn boss_win_rates() {
+    let bosses = [
+        (BattleId::Vex, 5, vec![HeroId::Wren, HeroId::Brannoc]),
+        (BattleId::Gristlemaw, 7, vec![HeroId::Wren, HeroId::Brannoc]),
+        (BattleId::Curator, 14, vec![HeroId::Wren, HeroId::Brannoc, HeroId::Maelis]),
+        (BattleId::MotherOfSpores, 23, HeroId::ALL.to_vec()),
+        (BattleId::IronWarden, 30, HeroId::ALL.to_vec()),
+        (BattleId::Ilsa, 35, HeroId::ALL.to_vec()),
+        (BattleId::Aurelian, 37, HeroId::ALL.to_vec()),
+    ];
+    let mut report = String::from("boss            level  wins/20  avg hp left\n");
+    let mut worst = 20;
+    for (boss, level, heroes) in bosses {
+        let act = match boss {
+            BattleId::Vex | BattleId::Gristlemaw => 1,
+            BattleId::Curator => 2,
+            BattleId::MotherOfSpores => 3,
+            BattleId::IronWarden => 4,
+            _ => 5,
+        };
+        let mut wins = 0;
+        let mut left = 0.0;
+        for seed in 0..20u64 {
+            let mut party: Vec<Hero> = heroes.iter().map(|&h| Hero::new(h, level)).collect();
+            for h in &mut party {
+                for slot in [EquipSlot::Weapon, EquipSlot::Armor] {
+                    // One tier behind the act's best, as a thrifty player would be.
+                    if let Some(i) = gear(h, slot, act.max(2) - 1).or_else(|| gear(h, slot, 1)) {
+                        h.equip(slot, Some(i));
+                    }
+                }
+                h.restore();
+            }
+            let mut inv = Inventory::default();
+            inv.add(ItemId::Tonic, 5);
+            inv.add(ItemId::Ether, 3);
+            inv.add(ItemId::EmberDown, 2);
+            if act >= 3 {
+                inv.add(ItemId::Draught, 3);
+                inv.add(ItemId::Elixir, 1);
+            }
+            let (result, battle) = fight(&mut party, &mut inv, &boss.formation(), BattleKind::Story(boss), seed * 7919 + 1);
+            if result == Result::Lost && boss == BattleId::Aurelian {
+                let enemies: Vec<String> = battle.units.iter().filter(|u| u.enemy.is_some()).map(|u| format!("{}:{}/{}", u.name, u.hp, u.max_hp)).collect();
+                println!("  lost phase {} after {} turns: {enemies:?}", battle.phase, battle.turns_taken);
+            }
+            if result == Result::Won {
+                wins += 1;
+                left += party.iter().map(|h| h.hp.max(0) as f32 / h.max_hp() as f32).sum::<f32>() / party.len() as f32;
+            }
+        }
+        worst = worst.min(wins);
+        report += &format!("{:<15} {level:>5}  {wins:>7}  {:>10.0}%\n", format!("{boss:?}"), if wins > 0 { left / wins as f32 * 100.0 } else { 0.0 });
+    }
+    println!("{report}");
+    assert!(worst >= 8, "a boss is too hard on auto\n{report}");
+}

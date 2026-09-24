@@ -161,7 +161,13 @@ impl App {
         self.explore.area_title = Some((game.world.biome.name().to_string(), format!("Floor {floor}"), 0.0));
         self.game = Some(game);
         self.screen = Screen::Playing;
+        self.dialogues.clear();
+        self.after.clear();
+        self.battle = None;
+        self.overlay = None;
+        self.fade = 1.0;
         self.restore_music();
+        self.start_scene(&format!("floor_{floor}_enter"));
     }
 
     fn load(&mut self, slot: usize) {
@@ -487,7 +493,11 @@ impl App {
             return;
         }
         if let Some(i) = game.world.creatures_act(&mut self.rng) {
-            self.encounter(i, false);
+            // A monster that reaches the party while a scene is starting waits
+            // its turn; it will still be there when the scene ends.
+            if self.dialogues.is_empty() && self.overlay.is_none() {
+                self.encounter(i, false);
+            }
         }
     }
 
@@ -677,6 +687,13 @@ impl App {
                 }
             }
             MenuOut::Title => self.to_title(),
+            MenuOut::AskTitle => {
+                self.overlay = Some(Overlay::Confirm {
+                    text: "Return to the title screen? Progress since your last save will be lost.".into(),
+                    yes: ConfirmYes::Title,
+                    list: ListState { cursor: 1, scroll: 0 },
+                })
+            }
             MenuOut::Replay(scene) => {
                 self.overlay = None;
                 self.start_scene(&scene);
@@ -698,15 +715,16 @@ impl App {
         // Battle (possibly with the phase interlude on top).
         if self.battle.is_some() {
             let mut signal = None;
+            // A live dialogue (the phase-two interlude, or anything else that
+            // started) takes over input; the battle waits underneath.
+            let talking = self.dialogues.last().is_some_and(|d| !d.waiting);
             {
                 let game = self.game.as_mut().unwrap();
                 let view = self.battle.as_mut().unwrap();
-                if self.dialogues.is_empty() || !self.interlude {
-                    if self.dialogues.last().is_none_or(|d| d.waiting) {
-                        signal = view.update(input, game, &mut self.audio, self.settings.battle_speed);
-                    }
+                if !talking {
+                    signal = view.update(input, game, &mut self.audio, self.settings.battle_speed);
                 }
-                let mut battle_input = if self.interlude { Input { dt, ..Default::default() } } else { input.clone() };
+                let mut battle_input = if talking { Input { dt, ..Default::default() } } else { input.clone() };
                 view.draw(painter, &self.gfx, screen, &mut battle_input, game, &mut self.audio, self.time);
             }
             match signal {
@@ -722,7 +740,7 @@ impl App {
                 Some(s) => self.battle_over(s),
                 None => {}
             }
-            if self.interlude {
+            if self.dialogues.last().is_some_and(|d| !d.waiting) {
                 self.dialogue_frame(painter, screen, input);
             }
             return;
@@ -734,7 +752,7 @@ impl App {
             let game = self.game.as_ref().unwrap();
             let shake = if self.shake > 0.0 { egui::vec2((self.time * 80.0).sin() as f32 * self.shake, 0.0) } else { egui::vec2(0.0, 0.0) };
             self.explore.draw(painter, &self.gfx, screen.translate(shake), game, self.time, dt);
-            if self.dialogues.is_empty() {
+            if self.dialogues.is_empty() && self.overlay.is_none() {
                 self.explore.draw_hud(painter, &self.gfx, screen, game, self.time);
             }
         }

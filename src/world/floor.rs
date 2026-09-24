@@ -84,7 +84,7 @@ pub fn build(floor: u32, seed: u64, flags: &BTreeSet<String>) -> World {
             let tile = match grid.get(x as usize, y as usize) {
                 Cell::Wall => Tile::Wall,
                 Cell::Floor => Tile::Floor,
-                Cell::Door | Cell::OpenDoor => Tile::Door,
+                Cell::Door => Tile::Door,
                 Cell::Stairs => {
                     stairs = (x, y);
                     Tile::Stairs

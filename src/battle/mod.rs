@@ -150,6 +150,7 @@ pub enum Event {
     Mp { target: usize, amount: i32 },
     Miss { target: usize },
     StatusOn { target: usize, status: StatusKind },
+    #[allow(dead_code)]
     StatusOff { target: usize, status: StatusKind },
     Down { target: usize },
     Revive { target: usize },

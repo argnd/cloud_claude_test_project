@@ -50,6 +50,9 @@
 @vex: Master Ironvein knows the old roads down to the Ember Forge. Dwarven gold, dwarven steel, dwarven everything. He's going to guide us. Aren't you, dear?
 @brannoc: No.
 @vex: He's said that for four days. It's very tiresome. Lads! The lamplighter has seen far too much. Put her out.
+@narrator: Old Tom swings. The lantern's hot glass kisses the ropes, and half of them give way at once.
+@brannoc: That'll do. Mind your feet, lamplighter.
+!join brannoc
 @wren: I light lanterns for a living. You'll find I'm hard to put out.
 !sfx BossRoar
 !battle vex
@@ -61,7 +64,7 @@
 !goto brannoc_join
 
 === brannoc_join
-@narrator: Wren saws through the last knot. The dwarf stands, cracks his neck one side and then the other, and looks her up and down.
+@narrator: The last of the rope falls away. The dwarf cracks his neck one side and then the other, and looks Wren up and down.
 @brannoc: Varn. The lamplighter. Ilsa's sister.
 @wren: You know Ilsa?
 @brannoc: Lit the lamp outside the Lark every night. Told me to go home every night. Never did.

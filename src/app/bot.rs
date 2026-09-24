@@ -108,6 +108,34 @@ fn step_towards(world: &World, goal: (i32, i32)) -> Option<Dir> {
     None
 }
 
+/// Walking distance from the player to every tile; tiles holding a blocking
+/// entity get a distance (you can walk up to them) but aren't walked through.
+fn path_distances(world: &World) -> Vec<i32> {
+    let mut dist = vec![i32::MAX; (world.w * world.h) as usize];
+    let mut queue = VecDeque::new();
+    dist[world.idx(world.player)] = 0;
+    queue.push_back(world.player);
+    while let Some(p) = queue.pop_front() {
+        let d = dist[world.idx(p)];
+        for dir in Dir::ALL {
+            let (dx, dy) = dir.delta();
+            let q = (p.0 + dx, p.1 + dy);
+            if !world.in_bounds(q) || dist[world.idx(q)] != i32::MAX {
+                continue;
+            }
+            let t = world.tile(q);
+            if !(t.walkable() || t == Tile::Door) {
+                continue;
+            }
+            dist[world.idx(q)] = d + 1;
+            if !world.entities.iter().any(|e| e.pos == q && e.blocks()) {
+                queue.push_back(q);
+            }
+        }
+    }
+    dist
+}
+
 fn equip_best(game: &mut Game) {
     for h in 0..game.party.len() {
         for slot in [EquipSlot::Weapon, EquipSlot::Armor, EquipSlot::Accessory] {
@@ -159,13 +187,14 @@ fn target(game: &Game) -> Option<(i32, i32)> {
         return (0..w.h).flat_map(|y| (0..w.w).map(move |x| (x, y))).find(|&p| w.tile(p) == Tile::VaultGate);
     }
     let hp: f32 = game.party.iter().map(|h| h.hp.max(0) as f32 / h.max_hp() as f32).sum::<f32>() / game.party.len() as f32;
-    let reachable = |p: (i32, i32)| step_towards(w, p).is_some();
+    let dist = path_distances(w);
     let find = |f: &dyn Fn(&EntityKind) -> bool| {
         w.entities
             .iter()
-            .filter(|e| f(&e.kind) && reachable(e.pos))
-            .min_by_key(|e| (e.pos.0 - w.player.0).abs() + (e.pos.1 - w.player.1).abs())
-            .map(|e| e.pos)
+            .enumerate()
+            .filter(|(_, e)| f(&e.kind) && dist[w.idx(e.pos)] != i32::MAX)
+            .min_by_key(|(i, e)| (dist[w.idx(e.pos)], *i))
+            .map(|(_, e)| e.pos)
     };
     if hp < 0.5 {
         if let Some(p) = find(&|k| matches!(k, EntityKind::Waystone)) {
@@ -192,6 +221,9 @@ fn playthrough() {
     let mut d = Driver::new(0.05);
     d.app.settings.battle_speed = 1.0;
     d.app.settings.text_speed = 55.0;
+    if let Some(floor) = std::env::var("BOT_START").ok().and_then(|v| v.parse().ok()) {
+        d.app.jump(floor);
+    }
     let mut last_floor = 0;
     let mut stuck = 0u32;
     let mut last_pos = (0, 0, 0u32);
@@ -200,8 +232,29 @@ fn playthrough() {
     let mut last_act = 0;
     let limit = 3_000_000u64;
     let mut cooldown = 0;
+    let mut trace = 0;
+    let mut last_battle = String::new();
     while d.frames < limit {
         cooldown = (cooldown as i32 - 1).max(0);
+        if d.frames % 50_000 == 0 && d.frames > 0 {
+            trace = 12;
+            if let Some(g) = d.app.game.as_ref() {
+                eprintln!(
+                    "[{}] moving {} move_t {} cooldown {cooldown} stuck {stuck} after {:?} floor {:?} at {:?} target {:?} dialogue {:?} battle {} overlay {} hp {:?}",
+                    d.frames,
+                    d.app.explore.moving(),
+                    d.app.explore.move_t,
+                    d.app.after,
+                    g.world.floor_number(),
+                    g.world.player,
+                    target(g),
+                    d.app.dialogues.last().map(|dl| dl.runner.scene.clone()),
+                    d.app.battle.is_some(),
+                    d.app.overlay.is_some(),
+                    g.party.iter().map(|h| h.hp).collect::<Vec<_>>()
+                );
+            }
+        }
         match &d.app.screen {
             Screen::Title(_) => {
                 d.frame(if d.frames % 20 == 10 { Some(Key::Enter) } else { None });
@@ -212,7 +265,9 @@ fn playthrough() {
                 for _ in 0..30 {
                     d.frame(None);
                 }
-                report += &format!("  defeat #{losses} on floor {last_floor}\n");
+                let line = format!("  defeat #{losses} on floor {last_floor}: {last_battle}\n");
+                eprint!("{line}");
+                report += &line;
                 assert!(losses < 25, "too many defeats\n{report}");
                 for _ in 0..40 {
                     d.frame(None);
@@ -237,7 +292,7 @@ fn playthrough() {
         }
         // Dialogue: read, pick the last (most hopeful) choice.
         if let Some(dl) = d.app.dialogues.last() {
-            if !dl.waiting || d.app.interlude {
+            if !dl.waiting {
                 if dl.is_choice() {
                     d.frame(Some(Key::ArrowUp));
                     d.frame(None);
@@ -249,6 +304,12 @@ fn playthrough() {
             }
         }
         if let Some(b) = &mut d.app.battle {
+            if !b.auto {
+                last_battle = b.battle.units.iter().filter(|u| u.enemy.is_some()).map(|u| format!("{} L{}", u.name, u.level)).collect::<Vec<_>>().join(", ");
+                if let Some(g) = d.app.game.as_ref() {
+                    last_battle += &format!(" | party {:?} items {:?}", g.party.iter().map(|h| (h.level, h.max_hp())).collect::<Vec<_>>(), g.inventory.list().iter().filter(|(i, _)| i.def().usable_in_battle()).map(|(i, c)| format!("{}x{c}", i.def().name)).collect::<Vec<_>>());
+                }
+            }
             b.auto = true;
             d.frame(if d.frames % 15 == 0 { Some(Key::Enter) } else { None });
             continue;
@@ -279,12 +340,15 @@ fn playthrough() {
                 shop(game);
             }
             equip_best(game);
-            report += &format!(
-                "floor {floor:>2}: {:>5.0} min game time, levels {:?}, gold {}\n",
+            let line = format!(
+                "floor {floor:>2}: {:>5.0} min game time, levels {:?}, gold {}, shards {}\n",
                 game.playtime / 60.0,
                 game.party.iter().map(|h| h.level).collect::<Vec<_>>(),
-                game.gold
+                game.gold,
+                game.shards().len()
             );
+            eprint!("{line}");
+            report += &line;
             last_floor = floor;
         }
         equip_best(game);
@@ -304,6 +368,11 @@ fn playthrough() {
             d.frame(None);
             continue;
         };
+        if trace > 0 {
+            trace -= 1;
+            let near: Vec<String> = game.world.entities.iter().filter(|e| (e.pos.0 - game.world.player.0).abs() + (e.pos.1 - game.world.player.1).abs() <= 6).map(|e| format!("{:?}@{:?}", std::mem::discriminant(&e.kind), e.pos)).collect();
+            eprintln!("  at {:?} facing {:?} goal {goal:?} step {:?} tile-here {:?} near {:?}", game.world.player, game.world.facing, step_towards(&game.world, goal), game.world.tile(game.world.player), near);
+        }
         match step_towards(&game.world, goal) {
             Some(dir) => {
                 d.frame(Some(key_for(dir)));

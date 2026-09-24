@@ -920,7 +920,7 @@ impl BattleView {
         }
     }
 
-    fn draw_target_info(&self, painter: &egui::Painter, gfx: &Gfx, screen: Rect, game: &Game, unit: usize, group: bool) {
+    fn draw_target_info(&self, painter: &egui::Painter, _gfx: &Gfx, screen: Rect, game: &Game, unit: usize, group: bool) {
         let u = &self.battle.units[unit];
         let r = Rect::from_min_size(pos2(screen.left() + 16.0, screen.bottom() - 120.0), vec2(460.0, 104.0));
         gfx::panel(painter, r);
@@ -935,6 +935,12 @@ impl BattleView {
             let weak: Vec<&str> = Element::ALL.iter().filter(|e| game.known_weak.contains(&(enemy, **e))).map(|e| e.name()).collect();
             let text = if weak.is_empty() { "Weakness: ???".to_string() } else { format!("Weak to: {}", weak.join(", ")) };
             gfx::text(painter, r.left_top() + vec2(16.0, 72.0), Align2::LEFT_TOP, &text, gfx::body_font(18.0), Color32::from_rgb(255, 210, 120));
+        }
+        // What is ailing (or helping) the target.
+        for (k, &(status, turns)) in u.statuses.iter().take(4).enumerate() {
+            let y = r.top() - 30.0 - k as f32 * 26.0;
+            let colour = if status.is_harmful() { Color32::from_rgb(210, 150, 255) } else { Color32::from_rgb(255, 225, 140) };
+            gfx::text(painter, pos2(r.left() + 8.0, y), Align2::LEFT_CENTER, &format!("{} ({turns}) — {}", status.name(), status.describe()), gfx::body_font(17.0), colour);
         }
     }
 
@@ -1010,8 +1016,8 @@ impl BattleView {
             return;
         }
         let u = &self.battle.units[i];
-        let r = Rect::from_center_size(pos2(screen.center().x, screen.top() + 30.0), vec2(screen.width() * 0.5, 16.0));
-        gfx::text(painter, r.center_top() - vec2(0.0, 4.0), Align2::CENTER_BOTTOM, &u.name, gfx::heading_font(18.0), Color32::from_rgb(255, 150, 130));
+        let r = Rect::from_min_size(pos2(screen.left() + 24.0, screen.top() + 36.0), vec2(screen.width() * 0.5 - 90.0, 16.0));
+        gfx::text(painter, r.left_top() - vec2(0.0, 4.0), Align2::LEFT_BOTTOM, &u.name, gfx::heading_font(18.0), Color32::from_rgb(255, 150, 130));
         gfx::bar(painter, r.translate(vec2(0.0, 8.0)), self.vis[i].shown_hp.max(0) as f32 / u.max_hp as f32, Color32::from_rgb(190, 40, 50));
     }
 
@@ -1062,7 +1068,7 @@ impl BattleView {
         }
     }
 
-    fn draw_rewards(&self, painter: &egui::Painter, gfx: &Gfx, screen: Rect, game: &Game) {
+    fn draw_rewards(&self, painter: &egui::Painter, _gfx: &Gfx, screen: Rect, game: &Game) {
         let Some(r) = &self.rewards else { return };
         let a = (r.age / 0.4).min(1.0);
         painter.rect_filled(screen, CornerRadius::ZERO, Color32::from_black_alpha((120.0 * a) as u8));

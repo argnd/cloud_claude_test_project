@@ -85,10 +85,6 @@ impl Hero {
         self.def().skills_at(self.level)
     }
 
-    pub fn is_down(&self) -> bool {
-        self.hp <= 0
-    }
-
     pub fn restore(&mut self) {
         self.hp = self.max_hp();
         self.mp = self.max_mp();

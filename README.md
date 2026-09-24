@@ -1,69 +1,89 @@
-# Dungeon crawler
+# Emberdeep — The Last Lantern
 
-A small turn-based, tile-based 2D dungeon crawler. Built in Rust with
-[egui](https://github.com/emilk/egui); the release build is a single
-`dungeon_crawler.exe` with no installation and no files next to it.
+A story-driven, turn-based fantasy RPG in Rust. Twenty floors beneath a
+mountain village, a lamplighter goes looking for the sister who went down a
+year ago to tend the sacred flame — and learns what the flame has always been
+fed.
 
-Levels are generated the same way as the *Dungeon* type of
-[rust_maze](https://github.com/argnd/rust_maze): rooms are placed first, a
-maze algorithm carves corridors around them, doors join every region into
-one, and dead-end corridors are filled back in.
+- **A full story**: a prologue, five acts, three endings (one hidden behind
+  finding all twelve Memory Shards), ~1,000 lines of written dialogue across
+  167 scenes, four companions with their own arcs and quests.
+- **Timeline battles**: a turn-order forecast (in the style of Final Fantasy
+  X), four heroes with 8–10 skills each, seven elements with weaknesses to
+  discover, 14 status effects, items, defend, flee, and an **Auto** command.
+  Bosses have scripted moments; the final one has two phases.
+- **Exploration**: the hand-drawn village of Hollowmere (shops, inn, temple,
+  townsfolk whose lines change as the story darkens) and twenty procedural
+  floors in five biomes, lit by your lantern, with monsters that notice you
+  and give chase, treasure, lore, waystones and bosses.
+- **RPG depth**: levels to 50, five tiers of gear per character plus
+  legendary rewards, accessories with special effects, eight side quests,
+  three save slots plus autosave, three difficulty settings.
+- **Everything in the box**: the release build is one executable. Art is the
+  CC0 Dungeon Crawl Stone Soup tile set (composited and recoloured into a
+  custom atlas); all music and sound effects are synthesized in real time by
+  the game itself.
 
 ## Playing
 
-Reach the stairs of depth 10 to escape. Each level is bigger than the last,
-and monsters (rats, goblins, orcs) get tougher the deeper you go.
+| Key                                  | Action                                    |
+| ------------------------------------ | ----------------------------------------- |
+| Arrows / WASD                        | move, navigate menus                      |
+| Enter / Space / E                    | talk, open, confirm, advance dialogue     |
+| Esc / Backspace                      | back, cancel                              |
+| Tab (or Esc while exploring)         | party menu: status, equipment, items, skills, quests, journal, save |
+| M                                    | toggle the minimap                        |
+| Shift (hold)                         | fast-forward dialogue and battle animations |
 
-| Key                          | Action                                   |
-| ---------------------------- | ---------------------------------------- |
-| Arrows / WASD / HJKL         | move; bump a door to open it, a monster to attack it |
-| Space or `.`                 | wait a turn                              |
-| Enter or `>`                 | take the stairs down                     |
+Walk into people to talk, into chests to open them, into monsters to fight
+(catching them from behind gives you the first move). Waystones at the start
+of every floor let you rest, save, or return to Hollowmere; from the
+Vaultgate you can go back down to any floor you have reached.
 
-- You start in the first room; the stairs are on the square farthest away.
-- You see 7 squares around you. Walls and closed doors block sight; places
-  you have seen stay on the map, dimmed.
-- Monsters wake up when they see you and chase you along the shortest path.
-- Red potions heal 8 HP, gold is your score. Walk over them to pick them up.
-- Every staircase gives +3 max HP and some healing, and every other one +1
-  attack.
-
-The menu lets you pick the corridor algorithm: *Recursive backtracker*
-(long winding corridors), *Prim* (short branching ones) or *Kruskal*.
+**Chapter Select** on the title screen drops you into any act with a party
+levelled and equipped for it — handy for a quick look at later content.
 
 ## Building
 
-Needs the Rust toolchain from <https://rustup.rs> (1.95 or later; MSVC on
-Windows).
+Needs Rust 1.95 or later (<https://rustup.rs>).
 
 ```
-cargo run              # debug build, opens the window, keeps a console for panics
-cargo test             # dungeon connectivity and game rules
-cargo build --release  # target/release/dungeon_crawler(.exe), standalone
+cargo run --release     # play
+cargo test              # unit tests, balance simulation, story and map checks
+cargo build --release   # target/release/emberdeep(.exe), standalone
 ```
 
-The release build links the C runtime statically on Windows
-(`.cargo/config.toml`) and hides the console window; debug builds keep it.
+On Linux the sound needs the ALSA headers (`sudo apt install libasound2-dev`
+on Debian/Ubuntu); `cargo run --no-default-features` builds a silent version
+without them. Windows and macOS need nothing extra.
 
-## Tiles
-
-Every square is drawn from a 32x32 PNG in `assets/tiles/`, embedded into the
-exe at build time. Repaint them with any pixel editor and rebuild. Everything
-but `wall`, `floor` and `stairs` uses transparency and is drawn over the
-floor. The placeholder set was made with `cargo run --example make_tiles`.
-
-## Layout
+An automated player can play the entire game through the real UI (title
+screen to ending) and reports how long each floor took:
 
 ```
-src/main.rs                  window setup
-src/dungeon/                 level generation (rooms, doors, pruning, tests)
-src/dungeon/grid.rs          the square grid: Wall / Floor / Door / OpenDoor / Stairs
-src/dungeon/carvers/         corridor carvers: backtracker, prim, kruskal
-src/game/                    turns, combat, monsters, items, field of view (tests)
-src/ui/                      screens, level rendering, tile textures
-assets/tiles/                the tile PNGs
-examples/make_tiles.rs       one-shot generator for placeholder tiles
+cargo test --profile bot playthrough -- --ignored --nocapture
 ```
 
-The game logic in `src/game/` knows nothing about the UI: the app turns key
-presses into `Action`s and calls `Game::act`, then draws the resulting state.
+## How it's built
+
+```
+src/main.rs            window setup
+src/app/               screens: title, exploring, battle, dialogue, menus, endings; the test bot
+src/battle/            turn-based battle rules and AI (no UI), balance simulation
+src/data/              content tables: heroes, skills, items, enemies, quests
+src/world/             Hollowmere, procedural floors, movement, field of view
+src/dungeon/           room-and-corridor generator (maze carvers from rust_maze)
+src/story/             the story-script parser, validator and runner
+src/audio/             real-time synthesizer, songs and sound effects
+src/game.rs            the saved game state; save.rs: slots and settings
+assets/story/*.story   the whole script, in a small readable format
+assets/atlas.png       every sprite (regenerate with tools/build_atlas.py)
+docs/DESIGN.md         the game design document
+```
+
+The rules never touch the UI: battles return a list of events that the
+battle screen animates, and the story runner executes script commands
+against the game state. That split is what lets the balance simulation and
+the playthrough bot exercise the real game logic.
+
+See [assets/CREDITS.md](assets/CREDITS.md) for art, font and audio credits.

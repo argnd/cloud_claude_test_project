@@ -74,7 +74,6 @@ pub enum Op {
 #[derive(Clone, Debug)]
 pub struct Scene {
     pub id: String,
-    pub file: String,
     pub ops: Vec<Op>,
 }
 
@@ -223,7 +222,7 @@ impl Script {
                     if let Some(done) = current.take() {
                         script.insert(done).map_err(err)?;
                     }
-                    current = Some(Scene { id: id.trim().to_string(), file: file.to_string(), ops: Vec::new() });
+                    current = Some(Scene { id: id.trim().to_string(), ops: Vec::new() });
                     continue;
                 }
                 let Some(scene) = current.as_mut() else {
@@ -267,6 +266,7 @@ impl Script {
     }
 
     /// Problems a parse can't see: dangling jumps, unknown speakers.
+    #[cfg(test)]
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();
         let exists = |t: &str| t == "end" || self.scenes.contains_key(t);

@@ -155,10 +155,6 @@ impl Tile {
     pub fn blocks_sight(self) -> bool {
         matches!(self, Tile::Wall | Tile::TownWall | Tile::Door | Tile::Bookshelf | Tile::Tree)
     }
-
-    pub fn is_wall(self) -> bool {
-        matches!(self, Tile::Wall | Tile::TownWall | Tile::Bookshelf)
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]

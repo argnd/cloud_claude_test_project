@@ -206,10 +206,6 @@ impl Game {
         self.party.iter().any(|h| h.id == id)
     }
 
-    pub fn hero_mut(&mut self, id: HeroId) -> Option<&mut Hero> {
-        self.party.iter_mut().find(|h| h.id == id)
-    }
-
     pub fn lead_level(&self) -> u32 {
         self.party[0].level
     }

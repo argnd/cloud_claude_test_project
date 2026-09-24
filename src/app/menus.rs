@@ -27,6 +27,7 @@ pub enum MenuOut {
     Save(usize),
     Load(usize),
     Title,
+    AskTitle,
     Replay(String),
     OpenShop(Shop),
     SettingsChanged,
@@ -826,7 +827,7 @@ impl PauseMenu {
                 input.eat();
                 MenuOut::None
             }
-            Some(3) => MenuOut::Title,
+            Some(3) => MenuOut::AskTitle,
             _ => MenuOut::None,
         }
     }
