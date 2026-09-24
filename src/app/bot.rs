@@ -28,7 +28,14 @@ impl Driver {
     fn new(dt: f32) -> Self {
         let ctx = egui::Context::default();
         let app = App::with_context(&ctx);
-        Self { ctx, app, time: 0.0, dt, frames: 0, held: None }
+        Self {
+            ctx,
+            app,
+            time: 0.0,
+            dt,
+            frames: 0,
+            held: None,
+        }
     }
 
     /// One frame; `press` is pressed this frame and released the next.
@@ -40,10 +47,22 @@ impl Driver {
             ..Default::default()
         };
         if let Some(k) = self.held.take() {
-            raw.events.push(egui::Event::Key { key: k, physical_key: None, pressed: false, repeat: false, modifiers: Default::default() });
+            raw.events.push(egui::Event::Key {
+                key: k,
+                physical_key: None,
+                pressed: false,
+                repeat: false,
+                modifiers: Default::default(),
+            });
         }
         if let Some(k) = press {
-            raw.events.push(egui::Event::Key { key: k, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() });
+            raw.events.push(egui::Event::Key {
+                key: k,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: Default::default(),
+            });
             self.held = Some(k);
         }
         self.time += self.dt as f64;
@@ -84,7 +103,10 @@ fn step_towards(world: &World, goal: (i32, i32)) -> Option<Dir> {
             let t = world.tile(q);
             let passable = t.walkable() || t == Tile::Door;
             // Monsters in the way just get fought.
-            let blocked = q != goal && world.entities.iter().any(|e| e.pos == q && e.blocks() && !matches!(e.kind, EntityKind::Monster { .. }));
+            let blocked = q != goal
+                && world.entities.iter().any(|e| {
+                    e.pos == q && e.blocks() && !matches!(e.kind, EntityKind::Monster { .. })
+                });
             if !passable && q != goal || blocked {
                 continue;
             }
@@ -129,7 +151,11 @@ fn path_distances(world: &World) -> Vec<i32> {
                 continue;
             }
             dist[world.idx(q)] = d + 1;
-            if !world.entities.iter().any(|e| e.pos == q && e.blocks() && !matches!(e.kind, EntityKind::Monster { .. })) {
+            if !world
+                .entities
+                .iter()
+                .any(|e| e.pos == q && e.blocks() && !matches!(e.kind, EntityKind::Monster { .. }))
+            {
                 queue.push_back(q);
             }
         }
@@ -142,7 +168,17 @@ fn equip_best(game: &mut Game) {
         for slot in [EquipSlot::Weapon, EquipSlot::Armor, EquipSlot::Accessory] {
             let score = |i: ItemId| {
                 let s = i.def().stats;
-                s.atk + s.mag + s.def + s.res + s.hp / 5 + s.spd * 2 + if i.def().special != crate::data::items::Special::None { 8 } else { 0 }
+                s.atk
+                    + s.mag
+                    + s.def
+                    + s.res
+                    + s.hp / 5
+                    + s.spd * 2
+                    + if i.def().special != crate::data::items::Special::None {
+                        8
+                    } else {
+                        0
+                    }
             };
             let current = game.party[h].slot(slot).map(score).unwrap_or(-1);
             let best = game
@@ -152,10 +188,10 @@ fn equip_best(game: &mut Game) {
                 .map(|(i, _)| i)
                 .filter(|&i| i.def().slot() == Some(slot) && game.party[h].can_equip(i))
                 .max_by_key(|&i| score(i));
-            if let Some(b) = best {
-                if score(b) > current {
-                    let _ = game.equip(h, b);
-                }
+            if let Some(b) = best
+                && score(b) > current
+            {
+                let _ = game.equip(h, b);
             }
         }
     }
@@ -166,7 +202,11 @@ fn shop(game: &mut Game) {
     let stock = game.stock(crate::world::Shop::Smith);
     for h in 0..game.party.len() {
         for slot in [EquipSlot::Weapon, EquipSlot::Armor] {
-            let best = stock.iter().copied().filter(|&i| i.def().slot() == Some(slot) && game.party[h].can_equip(i)).max_by_key(|i| i.def().price);
+            let best = stock
+                .iter()
+                .copied()
+                .filter(|&i| i.def().slot() == Some(slot) && game.party[h].can_equip(i))
+                .max_by_key(|i| i.def().price);
             if let Some(b) = best {
                 let have = game.party[h].slot(slot).map(|i| i.def().price).unwrap_or(0);
                 if b.def().price > have && game.gold >= b.def().price {
@@ -185,9 +225,16 @@ fn shop(game: &mut Game) {
 fn target(game: &Game) -> Option<(i32, i32)> {
     let w = &game.world;
     if w.place == Place::Town {
-        return (0..w.h).flat_map(|y| (0..w.w).map(move |x| (x, y))).find(|&p| w.tile(p) == Tile::VaultGate);
+        return (0..w.h)
+            .flat_map(|y| (0..w.w).map(move |x| (x, y)))
+            .find(|&p| w.tile(p) == Tile::VaultGate);
     }
-    let hp: f32 = game.party.iter().map(|h| h.hp.max(0) as f32 / h.max_hp() as f32).sum::<f32>() / game.party.len() as f32;
+    let hp: f32 = game
+        .party
+        .iter()
+        .map(|h| h.hp.max(0) as f32 / h.max_hp() as f32)
+        .sum::<f32>()
+        / game.party.len() as f32;
     let dist = path_distances(w);
     let find = |f: &dyn Fn(&EntityKind) -> bool| {
         w.entities
@@ -197,10 +244,10 @@ fn target(game: &Game) -> Option<(i32, i32)> {
             .min_by_key(|(i, e)| (dist[w.idx(e.pos)], *i))
             .map(|(_, e)| e.pos)
     };
-    if hp < 0.5 {
-        if let Some(p) = find(&|k| matches!(k, EntityKind::Waystone)) {
-            return Some(p);
-        }
+    if hp < 0.5
+        && let Some(p) = find(&|k| matches!(k, EntityKind::Waystone))
+    {
+        return Some(p);
     }
     find(&|k| matches!(k, EntityKind::Npc { scene: Some(_), id, .. } if id != "brannoc"))
         .or_else(|| find(&|k| matches!(k, EntityKind::Pickup(_))))
@@ -208,8 +255,18 @@ fn target(game: &Game) -> Option<(i32, i32)> {
         .or_else(|| find(&|k| matches!(k, EntityKind::Chest { opened: false, .. })))
         .or_else(|| find(&|k| matches!(k, EntityKind::Npc { scene: Some(_), .. })))
         .or_else(|| find(&|k| matches!(k, EntityKind::Boss { .. })))
-        .or_else(|| if hp < 0.9 { find(&|k| matches!(k, EntityKind::Waystone)) } else { None })
-        .or_else(|| (0..w.h).flat_map(|y| (0..w.w).map(move |x| (x, y))).find(|&p| w.tile(p) == Tile::Stairs))
+        .or_else(|| {
+            if hp < 0.9 {
+                find(&|k| matches!(k, EntityKind::Waystone))
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            (0..w.h)
+                .flat_map(|y| (0..w.w).map(move |x| (x, y)))
+                .find(|&p| w.tile(p) == Tile::Stairs)
+        })
 }
 
 #[test]
@@ -236,8 +293,8 @@ fn playthrough() {
     let mut trace = 0;
     let mut last_battle = String::new();
     while d.frames < limit {
-        cooldown = (cooldown as i32 - 1).max(0);
-        if d.frames % 50_000 == 0 && d.frames > 0 {
+        cooldown = (cooldown - 1).max(0);
+        if d.frames.is_multiple_of(50_000) && d.frames > 0 {
             trace = 12;
             if let Some(g) = d.app.game.as_ref() {
                 eprintln!(
@@ -258,7 +315,11 @@ fn playthrough() {
         }
         match &d.app.screen {
             Screen::Title(_) => {
-                d.frame(if d.frames % 20 == 10 { Some(Key::Enter) } else { None });
+                d.frame(if d.frames % 20 == 10 {
+                    Some(Key::Enter)
+                } else {
+                    None
+                });
                 continue;
             }
             Screen::GameOver(_) => {
@@ -292,35 +353,70 @@ fn playthrough() {
             Screen::Playing => {}
         }
         // Dialogue: read, pick the last (most hopeful) choice.
-        if let Some(dl) = d.app.dialogues.last() {
-            if !dl.waiting {
-                if dl.is_choice() {
-                    d.frame(Some(Key::ArrowUp));
-                    d.frame(None);
-                    d.frame(Some(Key::Enter));
+        if let Some(dl) = d.app.dialogues.last()
+            && !dl.waiting
+        {
+            if dl.is_choice() {
+                d.frame(Some(Key::ArrowUp));
+                d.frame(None);
+                d.frame(Some(Key::Enter));
+            } else {
+                d.frame(if d.frames.is_multiple_of(3) {
+                    Some(Key::Enter)
                 } else {
-                    d.frame(if d.frames % 3 == 0 { Some(Key::Enter) } else { None });
-                }
-                continue;
+                    None
+                });
             }
+            continue;
         }
         if let Some(b) = &mut d.app.battle {
             if !b.auto {
-                last_battle = b.battle.units.iter().filter(|u| u.enemy.is_some()).map(|u| format!("{} L{}", u.name, u.level)).collect::<Vec<_>>().join(", ");
+                last_battle = b
+                    .battle
+                    .units
+                    .iter()
+                    .filter(|u| u.enemy.is_some())
+                    .map(|u| format!("{} L{}", u.name, u.level))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 if let Some(g) = d.app.game.as_ref() {
-                    last_battle += &format!(" | party {:?} items {:?}", g.party.iter().map(|h| (h.level, h.max_hp())).collect::<Vec<_>>(), g.inventory.list().iter().filter(|(i, _)| i.def().usable_in_battle()).map(|(i, c)| format!("{}x{c}", i.def().name)).collect::<Vec<_>>());
+                    last_battle += &format!(
+                        " | party {:?} items {:?}",
+                        g.party
+                            .iter()
+                            .map(|h| (h.level, h.max_hp()))
+                            .collect::<Vec<_>>(),
+                        g.inventory
+                            .list()
+                            .iter()
+                            .filter(|(i, _)| i.def().usable_in_battle())
+                            .map(|(i, c)| format!("{}x{c}", i.def().name))
+                            .collect::<Vec<_>>()
+                    );
                 }
             }
             b.auto = true;
-            d.frame(if d.frames % 15 == 0 { Some(Key::Enter) } else { None });
+            d.frame(if d.frames.is_multiple_of(15) {
+                Some(Key::Enter)
+            } else {
+                None
+            });
             continue;
         }
         if let Some(o) = &d.app.overlay {
             let key = match o {
                 Overlay::Confirm { .. } | Overlay::FloorSelect(_) => Key::Enter,
                 Overlay::Waystone(list) => {
-                    let hurt = d.app.game.as_ref().is_some_and(|g| g.party.iter().any(|h| h.hp < h.max_hp()));
-                    if hurt && list.cursor == 0 { Key::Enter } else { Key::Escape }
+                    let hurt = d
+                        .app
+                        .game
+                        .as_ref()
+                        .is_some_and(|g| g.party.iter().any(|h| h.hp < h.max_hp()));
+                    if hurt && list.cursor == 0 {
+                        Key::Enter
+                    } else {
+                        Key::Escape
+                    }
                 }
                 _ => Key::Escape,
             };
@@ -370,14 +466,21 @@ fn playthrough() {
                 .world
                 .entities
                 .iter()
-                .filter(|e| (e.pos.0 - game.world.player.0).abs() + (e.pos.1 - game.world.player.1).abs() <= 3)
+                .filter(|e| {
+                    (e.pos.0 - game.world.player.0).abs() + (e.pos.1 - game.world.player.1).abs()
+                        <= 3
+                })
                 .map(|e| format!("{:?}@{:?}", e.kind, e.pos))
                 .collect();
             let tiles: Vec<String> = Dir::ALL
                 .iter()
                 .map(|d| {
                     let (dx, dy) = d.delta();
-                    format!("{d:?}:{:?}", game.world.tile((game.world.player.0 + dx, game.world.player.1 + dy)))
+                    format!(
+                        "{d:?}:{:?}",
+                        game.world
+                            .tile((game.world.player.0 + dx, game.world.player.1 + dy))
+                    )
                 })
                 .collect();
             panic!(
@@ -391,7 +494,10 @@ fn playthrough() {
         let adjacent = Dir::ALL.into_iter().find(|d| {
             let (dx, dy) = d.delta();
             let q = (game.world.player.0 + dx, game.world.player.1 + dy);
-            game.world.entities.iter().any(|e| e.pos == q && matches!(e.kind, EntityKind::Monster { .. }))
+            game.world
+                .entities
+                .iter()
+                .any(|e| e.pos == q && matches!(e.kind, EntityKind::Monster { .. }))
         });
         if let Some(dir) = adjacent {
             d.frame(Some(key_for(dir)));
@@ -404,8 +510,24 @@ fn playthrough() {
         };
         if trace > 0 {
             trace -= 1;
-            let near: Vec<String> = game.world.entities.iter().filter(|e| (e.pos.0 - game.world.player.0).abs() + (e.pos.1 - game.world.player.1).abs() <= 6).map(|e| format!("{:?}@{:?}", std::mem::discriminant(&e.kind), e.pos)).collect();
-            eprintln!("  at {:?} facing {:?} goal {goal:?} step {:?} tile-here {:?} near {:?}", game.world.player, game.world.facing, step_towards(&game.world, goal), game.world.tile(game.world.player), near);
+            let near: Vec<String> = game
+                .world
+                .entities
+                .iter()
+                .filter(|e| {
+                    (e.pos.0 - game.world.player.0).abs() + (e.pos.1 - game.world.player.1).abs()
+                        <= 6
+                })
+                .map(|e| format!("{:?}@{:?}", std::mem::discriminant(&e.kind), e.pos))
+                .collect();
+            eprintln!(
+                "  at {:?} facing {:?} goal {goal:?} step {:?} tile-here {:?} near {:?}",
+                game.world.player,
+                game.world.facing,
+                step_towards(&game.world, goal),
+                game.world.tile(game.world.player),
+                near
+            );
         }
         match step_towards(&game.world, goal) {
             Some(dir) => {

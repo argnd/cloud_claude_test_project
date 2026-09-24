@@ -57,13 +57,17 @@ impl Hero {
     }
 
     pub fn equipped(&self) -> impl Iterator<Item = ItemId> + '_ {
-        [self.weapon, self.armor, self.accessory].into_iter().flatten()
+        [self.weapon, self.armor, self.accessory]
+            .into_iter()
+            .flatten()
     }
 
     /// Level stats plus everything equipped.
     pub fn stats(&self) -> Stats {
         self.equipped()
-            .fold(self.def().stats_at(self.level), |s, item| s.add(item.def().stats))
+            .fold(self.def().stats_at(self.level), |s, item| {
+                s.add(item.def().stats)
+            })
     }
 
     pub fn max_hp(&self) -> i32 {
@@ -217,7 +221,10 @@ mod tests {
         assert!(ups.len() > 3);
         assert!(wren.max_hp() > hp1);
         assert!(wren.skills().contains(&SkillId::Flare));
-        assert!(ups.iter().any(|u| u.new_skills.contains(&SkillId::GuardianFlame)));
+        assert!(
+            ups.iter()
+                .any(|u| u.new_skills.contains(&SkillId::GuardianFlame))
+        );
     }
 
     #[test]

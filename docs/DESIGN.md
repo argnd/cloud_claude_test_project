@@ -98,21 +98,34 @@ Vaultgate takes you back to any floor you have reached.
 | | |
 | --- | --- |
 | Playable heroes | 4 |
-| Skills | 90+ (hero and enemy) |
+| Skills | 100 (34 for heroes, the rest for monsters and bosses) |
 | Monsters / bosses | 36 / 8 (one with two phases) |
 | Items | 80 (12 consumables, 7 quest items, 61 pieces of equipment) |
 | Floors | 20 procedural, in 5 biomes, plus the hand-built town |
-| Story | 167 scenes, ~1,000 lines, 3 endings |
+| Story | 167 scenes, 975 lines (~16,000 words), 3 endings |
 | Music | 16 original tracks (synthesized in engine), 34 sound effects |
 | Sprites | 199, from the CC0 Dungeon Crawl Stone Soup set |
 
 ## Length
 
-The automated player (which fights every monster, collects everything, and
-never reads) finishes in the game-time reported by
-`cargo test --profile bot playthrough -- --ignored --nocapture`. A human who
-reads the story, explores and manages the party takes roughly two to three
-times as long; the intended first playthrough is 3–4 hours.
+Measured with the automated player, which plays the real game through its
+UI: it fights every monster, collects every shard and page, rests at
+waystones, and finishes on the true ending. It never reads (it skips each
+line of dialogue in a fraction of a second), never takes a turn by hand
+(every battle is on Auto), and never walks back to town to shop.
+
+| Milestone | Bot game time |
+| --- | --- |
+| Act I done (floor 5) | ~17 min |
+| Act II done (floor 9) | ~48 min |
+| Act III done (floor 13) | ~70 min |
+| Act IV done (floor 17) | ~99 min |
+| Credits (true ending) | ~2.4 h |
+
+A person reading ~16,000 words of dialogue, choosing battle commands, and
+shopping between acts adds well over an hour on top: the expected first
+playthrough is **4–5 hours**, and longer for players who seek out every
+side quest and memory by hand.
 
 ## Technology
 

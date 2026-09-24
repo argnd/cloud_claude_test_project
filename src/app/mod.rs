@@ -2,14 +2,14 @@
 //! fighting, and everything that ties the game systems to the player.
 
 mod battle_view;
+#[cfg(test)]
+mod bot;
 mod dialogue;
 mod explore;
 mod input;
 mod menus;
 mod title;
 mod widgets;
-#[cfg(test)]
-mod bot;
 
 use std::collections::VecDeque;
 
@@ -25,7 +25,7 @@ use crate::game::{Difficulty, Game, Pending};
 use crate::gfx::{self, Gfx};
 use crate::save::{self, Settings};
 use crate::story::{self, Ending, Visual};
-use crate::world::floor::{boss_flag, LAST_FLOOR};
+use crate::world::floor::{LAST_FLOOR, boss_flag};
 use crate::world::{Dir, EntityKind, Loot, Move, Pickup, Place, Shop, Tile};
 use battle_view::{BattleSignal, BattleView};
 use dialogue::{Dialogue, DialogueOut};
@@ -87,7 +87,10 @@ impl App {
         audio.set_sfx_volume(settings.sfx);
         audio.play_music(Track::Title);
         let seed = rand::rng().random();
-        let jump = std::env::args().skip_while(|a| a != "--jump").nth(1).and_then(|n| n.parse::<u32>().ok());
+        let jump = std::env::args()
+            .skip_while(|a| a != "--jump")
+            .nth(1)
+            .and_then(|n| n.parse::<u32>().ok());
         let mut app = Self {
             gfx: Gfx::load(ctx),
             audio,
@@ -117,10 +120,10 @@ impl App {
             if args.iter().any(|a| a == "--battle") {
                 let group = crate::data::enemies::random_group(floor, &mut app.rng);
                 app.start_battle(group, BattleKind::Normal, None, None);
-            } else if args.iter().any(|a| a == "--boss") {
-                if let Some((b, _)) = crate::world::floor::boss_of(floor) {
-                    app.start_battle(b.formation(), BattleKind::Story(b), None, Some(b));
-                }
+            } else if args.iter().any(|a| a == "--boss")
+                && let Some((b, _)) = crate::world::floor::boss_of(floor)
+            {
+                app.start_battle(b.formation(), BattleKind::Story(b), None, Some(b));
             }
             // Debugging and screenshots: `--scene <id>`, `--shop`.
             if let Some(scene) = args.iter().skip_while(|a| *a != "--scene").nth(1) {
@@ -170,7 +173,11 @@ impl App {
         let game = Game::jump_start(floor, Difficulty::Normal, seed);
         self.explore = ExploreView::new();
         self.explore.reset(&game.world);
-        self.explore.area_title = Some((game.world.biome.name().to_string(), format!("Floor {floor}"), 0.0));
+        self.explore.area_title = Some((
+            game.world.biome.name().to_string(),
+            format!("Floor {floor}"),
+            0.0,
+        ));
         self.game = Some(game);
         self.screen = Screen::Playing;
         self.dialogues.clear();
@@ -217,7 +224,7 @@ impl App {
         }
     }
 
-    fn to_title(&mut self) {
+    fn go_to_title(&mut self) {
         self.game = None;
         self.dialogues.clear();
         self.after.clear();
@@ -230,7 +237,11 @@ impl App {
 
     fn restore_music(&mut self) {
         let Some(game) = &self.game else { return };
-        let track = if game.world.place == Place::Town && game.act() >= 3 { Track::TownSorrow } else { game.world.biome.music() };
+        let track = if game.world.place == Place::Town && game.act() >= 3 {
+            Track::TownSorrow
+        } else {
+            game.world.biome.music()
+        };
         self.audio.play_music(track);
     }
 
@@ -246,13 +257,19 @@ impl App {
         let Some(game) = &mut self.game else { return };
         game.enter_floor(n);
         self.explore.reset(&game.world);
-        self.explore.area_title = Some((game.world.biome.name().to_string(), format!("Floor {n}"), 0.0));
+        self.explore.area_title = Some((
+            game.world.biome.name().to_string(),
+            format!("Floor {n}"),
+            0.0,
+        ));
         self.fade = 1.0;
         self.audio.play_sfx(Sfx::Stairs);
         if n == 1 && !game.flag("tip_waystone") {
             game.set_flag("tip_waystone");
-            self.explore.notice("Tip: waystones heal the party, save, and lead home.");
-            self.explore.notice("Tip: catch monsters from behind to strike first.");
+            self.explore
+                .notice("Tip: waystones heal the party, save, and lead home.");
+            self.explore
+                .notice("Tip: catch monsters from behind to strike first.");
         }
         let scene = format!("floor_{n}_enter");
         let seen = game.flag(&format!("seen_{scene}"));
@@ -267,7 +284,11 @@ impl App {
         let Some(game) = &mut self.game else { return };
         game.enter_town(at_gate);
         self.explore.reset(&game.world);
-        self.explore.area_title = Some(("Hollowmere".into(), "A village at the top of the world".into(), 0.0));
+        self.explore.area_title = Some((
+            "Hollowmere".into(),
+            "A village at the top of the world".into(),
+            0.0,
+        ));
         self.fade = 1.0;
         let act = game.act();
         let scene = format!("town_return_{act}");
@@ -281,7 +302,13 @@ impl App {
         self.autosave_due = true;
     }
 
-    fn start_battle(&mut self, enemies: Vec<(EnemyId, u32)>, kind: BattleKind, entity: Option<usize>, story: Option<BattleId>) {
+    fn start_battle(
+        &mut self,
+        enemies: Vec<(EnemyId, u32)>,
+        kind: BattleKind,
+        entity: Option<usize>,
+        story: Option<BattleId>,
+    ) {
         let Some(game) = &mut self.game else { return };
         let mut battle = Battle::new(&game.party, &enemies, kind, self.rng.random());
         let (hp, dmg, _) = game.difficulty.multipliers();
@@ -315,7 +342,9 @@ impl App {
     }
 
     fn battle_over(&mut self, signal: BattleSignal) {
-        let Some(view) = self.battle.take() else { return };
+        let Some(view) = self.battle.take() else {
+            return;
+        };
         let Some(game) = &mut self.game else { return };
         match signal {
             BattleSignal::Victory => {
@@ -324,7 +353,9 @@ impl App {
                     if id == BattleId::Vex {
                         game.set_flag("vex_defeated");
                     }
-                    game.world.entities.retain(|e| !matches!(&e.kind, EntityKind::Boss { battle, .. } if *battle == id));
+                    game.world.entities.retain(
+                        |e| !matches!(&e.kind, EntityKind::Boss { battle, .. } if *battle == id),
+                    );
                     if let Some(post) = Self::post_scene(id) {
                         self.after.push_front(After::Scene(post.to_string()));
                     }
@@ -342,11 +373,12 @@ impl App {
                 }
             }
             BattleSignal::Escaped => {
-                if let Some(i) = view.entity {
-                    if let Some(EntityKind::Monster { sleep, awake, .. }) = game.world.entities.get_mut(i).map(|e| &mut e.kind) {
-                        *sleep = 6;
-                        *awake = false;
-                    }
+                if let Some(i) = view.entity
+                    && let Some(EntityKind::Monster { sleep, awake, .. }) =
+                        game.world.entities.get_mut(i).map(|e| &mut e.kind)
+                {
+                    *sleep = 6;
+                    *awake = false;
                 }
                 self.restore_music();
             }
@@ -391,26 +423,41 @@ impl App {
 
     fn run_after(&mut self) {
         while self.dialogues.is_empty() && self.overlay.is_none() && self.battle.is_none() {
-            let Some(next) = self.after.pop_front() else { break };
+            let Some(next) = self.after.pop_front() else {
+                break;
+            };
             match next {
                 After::Scene(s) if s == "__arrive_town" => {
-                    self.explore.area_title = Some(("Hollowmere".into(), "A village at the top of the world".into(), 0.0));
-                    self.explore.notice("Tip: walk into people to talk. Tab opens the party menu.");
+                    self.explore.area_title = Some((
+                        "Hollowmere".into(),
+                        "A village at the top of the world".into(),
+                        0.0,
+                    ));
+                    self.explore
+                        .notice("Tip: walk into people to talk. Tab opens the party menu.");
                     self.restore_music();
                     self.autosave_due = true;
                 }
                 After::Scene(s) => self.start_scene(&s),
                 After::Service(npc) => {
                     self.overlay = match npc.as_str() {
-                        "bess" => Some(Overlay::Service { kind: Shop::Inn, list: ListState::default() }),
-                        "oriel" => Some(Overlay::Service { kind: Shop::Temple, list: ListState::default() }),
+                        "bess" => Some(Overlay::Service {
+                            kind: Shop::Inn,
+                            list: ListState::default(),
+                        }),
+                        "oriel" => Some(Overlay::Service {
+                            kind: Shop::Temple,
+                            list: ListState::default(),
+                        }),
                         "dagna" => Some(Overlay::Shop(ShopView::new(Shop::Smith))),
                         "fen" => Some(Overlay::Shop(ShopView::new(Shop::Apothecary))),
                         _ => None,
                     }
                 }
                 After::Waystone => self.overlay = Some(Overlay::Waystone(ListState::default())),
-                After::FloorSelect => self.overlay = Some(Overlay::FloorSelect(ListState::default())),
+                After::FloorSelect => {
+                    self.overlay = Some(Overlay::FloorSelect(ListState::default()))
+                }
                 After::RemoveNpc(id) => {
                     if let Some(g) = &mut self.game {
                         g.world.remove_npc(&id);
@@ -495,14 +542,14 @@ impl App {
 
     fn confirm_stairs(&mut self) {
         let Some(game) = &self.game else { return };
-        if let Some(n) = game.world.floor_number() {
-            if n < LAST_FLOOR {
-                self.overlay = Some(Overlay::Confirm {
-                    text: format!("Descend to Floor {}?", n + 1),
-                    yes: ConfirmYes::Descend(n + 1),
-                    list: ListState::default(),
-                });
-            }
+        if let Some(n) = game.world.floor_number()
+            && n < LAST_FLOOR
+        {
+            self.overlay = Some(Overlay::Confirm {
+                text: format!("Descend to Floor {}?", n + 1),
+                yes: ConfirmYes::Descend(n + 1),
+                list: ListState::default(),
+            });
         }
     }
 
@@ -525,7 +572,11 @@ impl App {
 
     fn encounter(&mut self, i: usize, player_started: bool) {
         let Some(game) = &self.game else { return };
-        let Some(EntityKind::Monster { group, .. }) = game.world.entities.get(i).map(|e| e.kind.clone()) else { return };
+        let Some(EntityKind::Monster { group, .. }) =
+            game.world.entities.get(i).map(|e| e.kind.clone())
+        else {
+            return;
+        };
         let roll: f32 = self.rng.random();
         let kind = if player_started && roll < 0.5 {
             BattleKind::Preemptive
@@ -539,17 +590,33 @@ impl App {
 
     fn interact(&mut self, i: usize) {
         let Some(game) = &mut self.game else { return };
-        let Some(entity) = game.world.entities.get(i).cloned() else { return };
+        let Some(entity) = game.world.entities.get(i).cloned() else {
+            return;
+        };
         match entity.kind {
-            EntityKind::Npc { id, scene: None, .. } => {
+            EntityKind::Npc {
+                id, scene: None, ..
+            } => {
                 let scene = game.npc_scene(&id);
                 self.start_scene(&scene);
                 if matches!(id.as_str(), "bess" | "oriel" | "dagna" | "fen") {
                     self.after.push_back(After::Service(id));
                 }
             }
-            EntityKind::Npc { id, scene: Some(scene), .. } => {
-                let vex_here = game.world.entities.iter().any(|e| matches!(e.kind, EntityKind::Boss { battle: BattleId::Vex, .. }));
+            EntityKind::Npc {
+                id,
+                scene: Some(scene),
+                ..
+            } => {
+                let vex_here = game.world.entities.iter().any(|e| {
+                    matches!(
+                        e.kind,
+                        EntityKind::Boss {
+                            battle: BattleId::Vex,
+                            ..
+                        }
+                    )
+                });
                 if id == "brannoc" && vex_here {
                     self.start_scene("vex_pre");
                 } else {
@@ -561,7 +628,10 @@ impl App {
             }
             EntityKind::Monster { .. } => self.encounter(i, true),
             EntityKind::Boss { scene, .. } => self.start_scene(&scene),
-            EntityKind::Chest { loot, opened: false } => {
+            EntityKind::Chest {
+                loot,
+                opened: false,
+            } => {
                 if let EntityKind::Chest { opened, .. } = &mut game.world.entities[i].kind {
                     *opened = true;
                 }
@@ -577,7 +647,11 @@ impl App {
                     Loot::Item(item, n) => {
                         game.inventory.add(item, n);
                         let name = item.def().name;
-                        self.explore.notice(if n > 1 { format!("Found {name} ×{n}") } else { format!("Found {name}") });
+                        self.explore.notice(if n > 1 {
+                            format!("Found {name} ×{n}")
+                        } else {
+                            format!("Found {name}")
+                        });
                         self.audio.play_sfx(Sfx::ItemGet);
                     }
                 }
@@ -599,7 +673,9 @@ impl App {
 
     fn pickup(&mut self, i: usize) {
         let Some(game) = &mut self.game else { return };
-        let Some(EntityKind::Pickup(p)) = game.world.entities.get(i).map(|e| e.kind.clone()) else { return };
+        let Some(EntityKind::Pickup(p)) = game.world.entities.get(i).map(|e| e.kind.clone()) else {
+            return;
+        };
         game.world.remove_entity(i);
         match p {
             Pickup::Shard(n) => {
@@ -645,7 +721,8 @@ impl App {
                 Pending::Visual(Visual::Fade) => self.fade = 1.0,
                 Pending::Notice(n) => self.explore.notice(n),
                 Pending::Joined(h) => {
-                    self.explore.notice(format!("{} joined the party!", h.def().name));
+                    self.explore
+                        .notice(format!("{} joined the party!", h.def().name));
                     self.audio.play_sfx(Sfx::LevelUp);
                 }
             }
@@ -695,7 +772,13 @@ impl App {
             }
             MenuOut::Save(slot) => {
                 if slot == usize::MAX {
-                    self.overlay = Some(Overlay::Saves { saving: true, list: ListState { cursor: 1, scroll: 0 } });
+                    self.overlay = Some(Overlay::Saves {
+                        saving: true,
+                        list: ListState {
+                            cursor: 1,
+                            scroll: 0,
+                        },
+                    });
                 } else {
                     self.save(slot);
                     self.overlay = None;
@@ -703,17 +786,24 @@ impl App {
             }
             MenuOut::Load(slot) => {
                 if slot == usize::MAX {
-                    self.overlay = Some(Overlay::Saves { saving: false, list: ListState::default() });
+                    self.overlay = Some(Overlay::Saves {
+                        saving: false,
+                        list: ListState::default(),
+                    });
                 } else {
                     self.load(slot);
                 }
             }
-            MenuOut::Title => self.to_title(),
+            MenuOut::Title => self.go_to_title(),
             MenuOut::AskTitle => {
                 self.overlay = Some(Overlay::Confirm {
-                    text: "Return to the title screen? Progress since your last save will be lost.".into(),
+                    text: "Return to the title screen? Progress since your last save will be lost."
+                        .into(),
                     yes: ConfirmYes::Title,
-                    list: ListState { cursor: 1, scroll: 0 },
+                    list: ListState {
+                        cursor: 1,
+                        scroll: 0,
+                    },
                 })
             }
             MenuOut::Replay(scene) => {
@@ -727,7 +817,13 @@ impl App {
 
     // ------------------------------------------------------------ frame
 
-    fn play_frame(&mut self, ctx: &egui::Context, painter: &egui::Painter, screen: egui::Rect, input: &mut Input) {
+    fn play_frame(
+        &mut self,
+        ctx: &egui::Context,
+        painter: &egui::Painter,
+        screen: egui::Rect,
+        input: &mut Input,
+    ) {
         let dt = input.dt;
         if let Some(game) = &mut self.game {
             game.playtime += dt as f64;
@@ -746,14 +842,33 @@ impl App {
                 if !talking {
                     signal = view.update(input, game, &mut self.audio, self.settings.battle_speed);
                 }
-                let mut battle_input = if talking { Input { dt, ..Default::default() } } else { input.clone() };
-                view.draw(painter, &self.gfx, screen, &mut battle_input, game, &mut self.audio, self.time);
+                let mut battle_input = if talking {
+                    Input {
+                        dt,
+                        ..Default::default()
+                    }
+                } else {
+                    input.clone()
+                };
+                view.draw(
+                    painter,
+                    &self.gfx,
+                    screen,
+                    &mut battle_input,
+                    game,
+                    &mut self.audio,
+                    self.time,
+                );
             }
             match signal {
                 Some(BattleSignal::PhaseChange) => {
                     self.interlude = true;
                     self.start_scene("aurelian_phase2");
-                    if self.dialogues.last().is_none_or(|d| d.runner.scene != "aurelian_phase2") {
+                    if self
+                        .dialogues
+                        .last()
+                        .is_none_or(|d| d.runner.scene != "aurelian_phase2")
+                    {
                         // No interlude written: go straight on.
                         self.interlude = false;
                         self.battle.as_mut().unwrap().begin_second_phase();
@@ -772,17 +887,38 @@ impl App {
         self.explore.update(dt);
         {
             let game = self.game.as_ref().unwrap();
-            let shake = if self.shake > 0.0 { egui::vec2((self.time * 80.0).sin() as f32 * self.shake, 0.0) } else { egui::vec2(0.0, 0.0) };
-            self.explore.draw(painter, &self.gfx, screen.translate(shake), game, self.time, dt);
+            let shake = if self.shake > 0.0 {
+                egui::vec2((self.time * 80.0).sin() as f32 * self.shake, 0.0)
+            } else {
+                egui::vec2(0.0, 0.0)
+            };
+            self.explore.draw(
+                painter,
+                &self.gfx,
+                screen.translate(shake),
+                game,
+                self.time,
+                dt,
+            );
             if self.dialogues.is_empty() && self.overlay.is_none() {
-                self.explore.draw_hud(painter, &self.gfx, screen, game, self.time);
+                self.explore
+                    .draw_hud(painter, &self.gfx, screen, game, self.time);
             }
         }
         if !self.dialogues.is_empty() {
             self.dialogue_frame(painter, screen, input);
         } else if let Some(mut overlay) = self.overlay.take() {
             let game = self.game.as_mut().unwrap();
-            let out = overlay.show(painter, &self.gfx, screen, input, game, &mut self.audio, &mut self.settings, self.time);
+            let out = overlay.show(
+                painter,
+                &self.gfx,
+                screen,
+                input,
+                game,
+                &mut self.audio,
+                &mut self.settings,
+                self.time,
+            );
             self.overlay = Some(overlay);
             self.menu_out(out, ctx);
         } else {
@@ -798,9 +934,20 @@ impl App {
     }
 
     fn dialogue_frame(&mut self, painter: &egui::Painter, screen: egui::Rect, input: &mut Input) {
-        let Some(mut d) = self.dialogues.pop() else { return };
+        let Some(mut d) = self.dialogues.pop() else {
+            return;
+        };
         let game = self.game.as_mut().unwrap();
-        let out = d.show(painter, &self.gfx, screen, input, game, &mut self.audio, self.settings.text_speed, self.time);
+        let out = d.show(
+            painter,
+            &self.gfx,
+            screen,
+            input,
+            game,
+            &mut self.audio,
+            self.settings.text_speed,
+            self.time,
+        );
         match out {
             DialogueOut::Nothing => self.dialogues.push(d),
             DialogueOut::Battle(id) => {
@@ -823,7 +970,11 @@ impl App {
         let _ = save::write(0, game);
         self.dialogues.clear();
         self.after.clear();
-        self.audio.play_music(if e == Ending::Dawn { Track::Dawn } else { Track::Ending });
+        self.audio.play_music(if e == Ending::Dawn {
+            Track::Dawn
+        } else {
+            Track::Ending
+        });
         self.screen = Screen::Ending(EndingView::new(e, game));
     }
 }
@@ -848,7 +999,15 @@ impl App {
 
         match &mut self.screen {
             Screen::Title(view) => {
-                let out = view.show(&painter, &self.gfx, screen, &mut input, &mut self.audio, &mut self.settings, self.time);
+                let out = view.show(
+                    &painter,
+                    &self.gfx,
+                    screen,
+                    &mut input,
+                    &mut self.audio,
+                    &mut self.settings,
+                    self.time,
+                );
                 match out {
                     TitleOut::NewGame(d) => self.new_game(d),
                     TitleOut::Chapter(floor) => self.jump(floor),
@@ -859,17 +1018,24 @@ impl App {
                 }
             }
             Screen::Playing => self.play_frame(&ctx, &painter, screen, &mut input),
-            Screen::GameOver(view) => match view.show(&painter, &self.gfx, screen, &mut input, &mut self.audio, self.time) {
+            Screen::GameOver(view) => match view.show(
+                &painter,
+                &self.gfx,
+                screen,
+                &mut input,
+                &mut self.audio,
+                self.time,
+            ) {
                 GameOverOut::Retry => match save::any_save() {
                     Some(slot) => self.load(slot),
-                    None => self.to_title(),
+                    None => self.go_to_title(),
                 },
-                GameOverOut::Title => self.to_title(),
+                GameOverOut::Title => self.go_to_title(),
                 GameOverOut::None => {}
             },
             Screen::Ending(view) => {
                 if view.show(&painter, screen, &mut input) {
-                    self.to_title();
+                    self.go_to_title();
                 }
             }
         }
@@ -878,11 +1044,19 @@ impl App {
         let dt = input.dt;
         self.shake = (self.shake - dt * 25.0).max(0.0);
         if self.flash > 0.0 {
-            painter.rect_filled(screen, CornerRadius::ZERO, Color32::from_white_alpha((self.flash * 180.0) as u8));
+            painter.rect_filled(
+                screen,
+                CornerRadius::ZERO,
+                Color32::from_white_alpha((self.flash * 180.0) as u8),
+            );
             self.flash = (self.flash - dt * 2.0).max(0.0);
         }
         if self.fade > 0.0 {
-            painter.rect_filled(screen, CornerRadius::ZERO, Color32::from_black_alpha((self.fade.min(1.0) * 255.0) as u8));
+            painter.rect_filled(
+                screen,
+                CornerRadius::ZERO,
+                Color32::from_black_alpha((self.fade.min(1.0) * 255.0) as u8),
+            );
             self.fade = (self.fade - dt * 1.8).max(0.0);
         }
         let _ = Dir::Up;

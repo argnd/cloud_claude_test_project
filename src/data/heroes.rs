@@ -54,92 +54,108 @@ impl HeroId {
     pub fn def(self) -> &'static HeroDef {
         use SkillId as K;
         match self {
-            HeroId::Wren => &const { HeroDef {
-                name: "Wren",
-                title: "Lamplighter",
-                blurb: "Hollowmere's lamplighter. Balanced fighter who wields light.",
-                sprite: Sprite::Wren,
-                base: st(72, 18, 14, 10, 10, 9, 12),
-                growth: st(110, 25, 23, 16, 18, 15, 9),
-                weapon: WeaponKind::Sword,
-                armors: &[ArmorKind::Light, ArmorKind::Heavy],
-                learnset: &[
-                    (1, K::LanternStrike),
-                    (1, K::Kindle),
-                    (6, K::GuardianFlame),
-                    (9, K::Flare),
-                    (13, K::Beacon),
-                    (18, K::Sunburst),
-                    (24, K::LanternsMercy),
-                    (30, K::LastLight),
-                ],
-                start: [ItemId::RustySword, ItemId::PaddedVest],
-            } },
-            HeroId::Brannoc => &const { HeroDef {
-                name: "Brannoc",
-                title: "Vanguard",
-                blurb: "Dwarf miner, last of the Ironvein crew. Takes the hits.",
-                sprite: Sprite::Brannoc,
-                base: st(96, 10, 16, 14, 5, 8, 8),
-                growth: st(150, 14, 26, 22, 8, 13, 6),
-                weapon: WeaponKind::Axe,
-                armors: &[ArmorKind::Heavy],
-                learnset: &[
-                    (1, K::Cleave),
-                    (1, K::StandFast),
-                    (8, K::Sunder),
-                    (12, K::Earthshaker),
-                    (16, K::IronWill),
-                    (20, K::Warcry),
-                    (25, K::Skullsplitter),
-                    (31, K::MountainsWrath),
-                ],
-                start: [ItemId::MinersPick, ItemId::ChainShirt],
-            } },
-            HeroId::Maelis => &const { HeroDef {
-                name: "Maelis",
-                title: "Archivist",
-                blurb: "Scholar of the Lantern Order. Devastating elemental magic.",
-                sprite: Sprite::Maelis,
-                base: st(55, 40, 7, 7, 18, 14, 11),
-                growth: st(80, 45, 10, 11, 29, 20, 9),
-                weapon: WeaponKind::Staff,
-                armors: &[ArmorKind::Robe],
-                learnset: &[
-                    (1, K::Firebolt),
-                    (1, K::FrostLance),
-                    (10, K::ChainLightning),
-                    (12, K::Hex),
-                    (14, K::Haste),
-                    (17, K::Fireball),
-                    (19, K::Siphon),
-                    (21, K::Blizzard),
-                    (26, K::Thunderstorm),
-                    (32, K::Meteor),
-                ],
-                start: [ItemId::OakStaff, ItemId::ApprenticeRobe],
-            } },
-            HeroId::Pip => &const { HeroDef {
-                name: "Pip",
-                title: "Grovetender",
-                blurb: "Spriggan of the Glowroot Grove. Healer and poisoner.",
-                sprite: Sprite::Pip,
-                base: st(60, 35, 9, 8, 15, 16, 14),
-                growth: st(90, 40, 12, 13, 24, 22, 11),
-                weapon: WeaponKind::Wand,
-                armors: &[ArmorKind::Robe, ArmorKind::Light],
-                learnset: &[
-                    (1, K::Mend),
-                    (1, K::Bramble),
-                    (14, K::Cleanse),
-                    (15, K::Bloom),
-                    (17, K::Rekindle),
-                    (20, K::Wildgrowth),
-                    (24, K::ThornStorm),
-                    (30, K::Lifebloom),
-                ],
-                start: [ItemId::WillowWand, ItemId::LeafTunic],
-            } },
+            HeroId::Wren => {
+                &const {
+                    HeroDef {
+                        name: "Wren",
+                        title: "Lamplighter",
+                        blurb: "Hollowmere's lamplighter. Balanced fighter who wields light.",
+                        sprite: Sprite::Wren,
+                        base: st(72, 18, 14, 10, 10, 9, 12),
+                        growth: st(110, 25, 23, 16, 18, 15, 9),
+                        weapon: WeaponKind::Sword,
+                        armors: &[ArmorKind::Light, ArmorKind::Heavy],
+                        learnset: &[
+                            (1, K::LanternStrike),
+                            (1, K::Kindle),
+                            (6, K::GuardianFlame),
+                            (9, K::Flare),
+                            (13, K::Beacon),
+                            (18, K::Sunburst),
+                            (24, K::LanternsMercy),
+                            (30, K::LastLight),
+                        ],
+                        start: [ItemId::RustySword, ItemId::PaddedVest],
+                    }
+                }
+            }
+            HeroId::Brannoc => {
+                &const {
+                    HeroDef {
+                        name: "Brannoc",
+                        title: "Vanguard",
+                        blurb: "Dwarf miner, last of the Ironvein crew. Takes the hits.",
+                        sprite: Sprite::Brannoc,
+                        base: st(96, 10, 16, 14, 5, 8, 8),
+                        growth: st(150, 14, 26, 22, 8, 13, 6),
+                        weapon: WeaponKind::Axe,
+                        armors: &[ArmorKind::Heavy],
+                        learnset: &[
+                            (1, K::Cleave),
+                            (1, K::StandFast),
+                            (8, K::Sunder),
+                            (12, K::Earthshaker),
+                            (16, K::IronWill),
+                            (20, K::Warcry),
+                            (25, K::Skullsplitter),
+                            (31, K::MountainsWrath),
+                        ],
+                        start: [ItemId::MinersPick, ItemId::ChainShirt],
+                    }
+                }
+            }
+            HeroId::Maelis => {
+                &const {
+                    HeroDef {
+                        name: "Maelis",
+                        title: "Archivist",
+                        blurb: "Scholar of the Lantern Order. Devastating elemental magic.",
+                        sprite: Sprite::Maelis,
+                        base: st(55, 40, 7, 7, 18, 14, 11),
+                        growth: st(80, 45, 10, 11, 29, 20, 9),
+                        weapon: WeaponKind::Staff,
+                        armors: &[ArmorKind::Robe],
+                        learnset: &[
+                            (1, K::Firebolt),
+                            (1, K::FrostLance),
+                            (10, K::ChainLightning),
+                            (12, K::Hex),
+                            (14, K::Haste),
+                            (17, K::Fireball),
+                            (19, K::Siphon),
+                            (21, K::Blizzard),
+                            (26, K::Thunderstorm),
+                            (32, K::Meteor),
+                        ],
+                        start: [ItemId::OakStaff, ItemId::ApprenticeRobe],
+                    }
+                }
+            }
+            HeroId::Pip => {
+                &const {
+                    HeroDef {
+                        name: "Pip",
+                        title: "Grovetender",
+                        blurb: "Spriggan of the Glowroot Grove. Healer and poisoner.",
+                        sprite: Sprite::Pip,
+                        base: st(60, 35, 9, 8, 15, 16, 14),
+                        growth: st(90, 40, 12, 13, 24, 22, 11),
+                        weapon: WeaponKind::Wand,
+                        armors: &[ArmorKind::Robe, ArmorKind::Light],
+                        learnset: &[
+                            (1, K::Mend),
+                            (1, K::Bramble),
+                            (14, K::Cleanse),
+                            (15, K::Bloom),
+                            (17, K::Rekindle),
+                            (20, K::Wildgrowth),
+                            (24, K::ThornStorm),
+                            (30, K::Lifebloom),
+                        ],
+                        start: [ItemId::WillowWand, ItemId::LeafTunic],
+                    }
+                }
+            }
         }
     }
 }

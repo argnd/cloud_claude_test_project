@@ -99,13 +99,30 @@ pub fn build(stage: u8, mouser_home: bool) -> World {
                     _ => lamp_index == 0,
                 };
                 lamp_index += 1;
-                let (sprite, light) = if lit { (Sprite::LamppostLit, 4.5) } else { (Sprite::LamppostOut, 0.0) };
-                world.entities.push(Entity { pos: p, kind: EntityKind::Decor { sprite, light, blocks: true } });
+                let (sprite, light) = if lit {
+                    (Sprite::LamppostLit, 4.5)
+                } else {
+                    (Sprite::LamppostOut, 0.0)
+                };
+                world.entities.push(Entity {
+                    pos: p,
+                    kind: EntityKind::Decor {
+                        sprite,
+                        light,
+                        blocks: true,
+                    },
+                });
             }
             if let Some(&(_, id, sprite, wander)) = NPCS.iter().find(|n| n.0 == c) {
                 world.entities.push(Entity {
                     pos: p,
-                    kind: EntityKind::Npc { id: id.to_string(), sprite, scene: None, home: p, wander },
+                    kind: EntityKind::Npc {
+                        id: id.to_string(),
+                        sprite,
+                        scene: None,
+                        home: p,
+                        wander,
+                    },
                 });
             }
         }
@@ -113,12 +130,34 @@ pub fn build(stage: u8, mouser_home: bool) -> World {
     if mouser_home {
         world.entities.push(Entity {
             pos: (33, 23),
-            kind: EntityKind::Npc { id: "mouser".into(), sprite: Sprite::Cat, scene: Some("npc_mouser".into()), home: (33, 23), wander: false },
+            kind: EntityKind::Npc {
+                id: "mouser".into(),
+                sprite: Sprite::Cat,
+                scene: Some("npc_mouser".into()),
+                home: (33, 23),
+                wander: false,
+            },
         });
     }
     // Hearth fires in the houses.
-    for &p in &[(3, 3), (7, 5), (16, 3), (24, 5), (3, 21), (12, 21), (26, 21), (36, 21)] {
-        world.entities.push(Entity { pos: p, kind: EntityKind::Decor { sprite: Sprite::Brazier, light: 3.0, blocks: true } });
+    for &p in &[
+        (3, 3),
+        (7, 5),
+        (16, 3),
+        (24, 5),
+        (3, 21),
+        (12, 21),
+        (26, 21),
+        (36, 21),
+    ] {
+        world.entities.push(Entity {
+            pos: p,
+            kind: EntityKind::Decor {
+                sprite: Sprite::Brazier,
+                light: 3.0,
+                blocks: true,
+            },
+        });
     }
     world.explored = vec![true; (w * h) as usize];
     world.player = HOME;

@@ -3,7 +3,7 @@ use rand::rngs::StdRng;
 
 use super::ai::auto_action;
 use super::*;
-use crate::data::enemies::{random_group, BattleId};
+use crate::data::enemies::{BattleId, random_group};
 use crate::data::heroes::HeroId;
 use crate::data::items::{EquipSlot, ItemKind};
 use crate::rpg::{Hero, Inventory};
@@ -16,7 +16,13 @@ enum Result {
 }
 
 /// Runs a battle to the end with every hero on auto. Writes HP/MP back.
-fn fight(party: &mut [Hero], inv: &mut Inventory, enemies: &[(EnemyId, u32)], kind: BattleKind, seed: u64) -> (Result, Battle) {
+fn fight(
+    party: &mut [Hero],
+    inv: &mut Inventory,
+    enemies: &[(EnemyId, u32)],
+    kind: BattleKind,
+    seed: u64,
+) -> (Result, Battle) {
     let mut battle = Battle::new(party, enemies, kind, seed);
     let mut guard = 0;
     let result = loop {
@@ -52,7 +58,13 @@ fn fight(party: &mut [Hero], inv: &mut Inventory, enemies: &[(EnemyId, u32)], ki
 fn a_fresh_hero_beats_a_rat() {
     let mut party = vec![Hero::new(HeroId::Wren, 1)];
     let mut inv = Inventory::default();
-    let (result, _) = fight(&mut party, &mut inv, &[(EnemyId::SewerRat, 1)], BattleKind::Normal, 1);
+    let (result, _) = fight(
+        &mut party,
+        &mut inv,
+        &[(EnemyId::SewerRat, 1)],
+        BattleKind::Normal,
+        1,
+    );
     assert_eq!(result, Result::Won);
     assert!(party[0].hp > 0);
 }
@@ -70,14 +82,23 @@ fn weaknesses_are_discovered() {
             _ => {}
         }
     }
-    assert!(battle.discovered.contains(&(EnemyId::FireImp, Element::Frost)));
+    assert!(
+        battle
+            .discovered
+            .contains(&(EnemyId::FireImp, Element::Frost))
+    );
     party[0].hp = 0;
 }
 
 #[test]
 fn bosses_cannot_be_fled() {
     let party = vec![Hero::new(HeroId::Wren, 10)];
-    let mut battle = Battle::new(&party, &BattleId::Vex.formation(), BattleKind::Story(BattleId::Vex), 5);
+    let mut battle = Battle::new(
+        &party,
+        &BattleId::Vex.formation(),
+        BattleKind::Story(BattleId::Vex),
+        5,
+    );
     loop {
         if let Step::Command(u) = battle.step() {
             battle.act(u, Action::Flee);
@@ -98,7 +119,13 @@ fn the_final_boss_has_two_phases() {
     let mut inv = Inventory::default();
     inv.add(ItemId::Elixir, 20);
     inv.add(ItemId::EmberDown, 20);
-    let (result, battle) = fight(&mut party, &mut inv, &BattleId::Aurelian.formation(), BattleKind::Story(BattleId::Aurelian), 9);
+    let (result, battle) = fight(
+        &mut party,
+        &mut inv,
+        &BattleId::Aurelian.formation(),
+        BattleKind::Story(BattleId::Aurelian),
+        9,
+    );
     assert_eq!(result, Result::Won);
     assert_eq!(battle.phase, 2);
 }
@@ -108,7 +135,12 @@ fn gear(hero: &Hero, slot: EquipSlot, tier: u8) -> Option<ItemId> {
     ItemId::ALL
         .into_iter()
         .filter(|&i| i.def().tier == tier && i.def().slot() == Some(slot) && hero.can_equip(i))
-        .filter(|&i| !matches!(i.def().kind, ItemKind::Armor(crate::data::items::ArmorKind::Light)) || hero.id != HeroId::Wren)
+        .filter(|&i| {
+            !matches!(
+                i.def().kind,
+                ItemKind::Armor(crate::data::items::ArmorKind::Light)
+            ) || hero.id != HeroId::Wren
+        })
         .max_by_key(|&i| {
             let s = i.def().stats;
             s.atk + s.mag + s.def + s.res
@@ -165,7 +197,11 @@ fn balance_full_playthrough() {
                     .map(|i| i.def().price)
                     .sum()
             };
-            let tier = if cost(act, &party) <= gold { act } else { act.saturating_sub(1).max(1) };
+            let tier = if cost(act, &party) <= gold {
+                act
+            } else {
+                act.saturating_sub(1).max(1)
+            };
             gold = gold.saturating_sub(cost(tier, &party));
             for h in &mut party {
                 for slot in [EquipSlot::Weapon, EquipSlot::Armor] {
@@ -185,7 +221,13 @@ fn balance_full_playthrough() {
         let mut floor_wipes = 0;
         for f in 0..9 {
             let group = random_group(floor, &mut rng);
-            let (result, mut battle) = fight(&mut party, &mut inv, &group, BattleKind::Normal, rng.random());
+            let (result, mut battle) = fight(
+                &mut party,
+                &mut inv,
+                &group,
+                BattleKind::Normal,
+                rng.random(),
+            );
             fights += 1;
             if result == Result::Lost {
                 floor_wipes += 1;
@@ -215,7 +257,11 @@ fn balance_full_playthrough() {
             }
         }
         wipes += floor_wipes;
-        let hp_left: f32 = party.iter().map(|h| h.hp as f32 / h.max_hp() as f32).sum::<f32>() / party.len() as f32;
+        let hp_left: f32 = party
+            .iter()
+            .map(|h| h.hp as f32 / h.max_hp() as f32)
+            .sum::<f32>()
+            / party.len() as f32;
         report += &format!(
             "{floor:>5} {:>3}   {:>12.0}%  {fights:>6}  {floor_wipes:>5}  {gold}\n",
             party[0].level,
@@ -230,23 +276,48 @@ fn balance_full_playthrough() {
                 tries += 1;
                 let mut boss_inv = inv.clone();
                 boss_inv.add(ItemId::Tonic, 3);
-                let (result, battle) = fight(&mut party, &mut boss_inv, &boss.formation(), BattleKind::Story(boss), rng.random());
-                let left: f32 = party.iter().map(|h| h.hp.max(0) as f32 / h.max_hp() as f32).sum::<f32>() / party.len() as f32;
-                let used = inv.list().iter().map(|(_, c)| c).sum::<u32>() + 3 - boss_inv.list().iter().map(|(_, c)| c).sum::<u32>();
-                report += &format!("      boss {boss:?} try {tries}: {result:?} (phase {}), {:.0}% hp left, {used} items, {} turns\n", battle.phase, left * 100.0, battle.turns_taken);
+                let (result, battle) = fight(
+                    &mut party,
+                    &mut boss_inv,
+                    &boss.formation(),
+                    BattleKind::Story(boss),
+                    rng.random(),
+                );
+                let left: f32 = party
+                    .iter()
+                    .map(|h| h.hp.max(0) as f32 / h.max_hp() as f32)
+                    .sum::<f32>()
+                    / party.len() as f32;
+                let used = inv.list().iter().map(|(_, c)| c).sum::<u32>() + 3
+                    - boss_inv.list().iter().map(|(_, c)| c).sum::<u32>();
+                report += &format!(
+                    "      boss {boss:?} try {tries}: {result:?} (phase {}), {:.0}% hp left, {used} items, {} turns\n",
+                    battle.phase,
+                    left * 100.0,
+                    battle.turns_taken
+                );
                 for h in &mut party {
                     h.restore();
                 }
                 if result == Result::Won {
                     break;
                 }
-                assert!(tries < 6, "boss {boss:?} unbeatable on floor {floor}\n{report}");
+                assert!(
+                    tries < 6,
+                    "boss {boss:?} unbeatable on floor {floor}\n{report}"
+                );
             }
         }
     }
     println!("{report}");
-    assert!(wipes <= 4, "too many wipes in normal fights ({wipes})\n{report}");
-    assert!(party[0].level >= 28, "party under-levelled for the finale\n{report}");
+    assert!(
+        wipes <= 4,
+        "too many wipes in normal fights ({wipes})\n{report}"
+    );
+    assert!(
+        party[0].level >= 28,
+        "party under-levelled for the finale\n{report}"
+    );
 }
 
 fn scale_xp(xp: u32, hero_level: u32, enemy_level: u32) -> u32 {
@@ -260,7 +331,11 @@ fn boss_win_rates() {
     let bosses = [
         (BattleId::Vex, 5, vec![HeroId::Wren, HeroId::Brannoc]),
         (BattleId::Gristlemaw, 7, vec![HeroId::Wren, HeroId::Brannoc]),
-        (BattleId::Curator, 14, vec![HeroId::Wren, HeroId::Brannoc, HeroId::Maelis]),
+        (
+            BattleId::Curator,
+            14,
+            vec![HeroId::Wren, HeroId::Brannoc, HeroId::Maelis],
+        ),
         (BattleId::MotherOfSpores, 23, HeroId::ALL.to_vec()),
         (BattleId::IronWarden, 30, HeroId::ALL.to_vec()),
         (BattleId::Ilsa, 35, HeroId::ALL.to_vec()),
@@ -297,18 +372,44 @@ fn boss_win_rates() {
                 inv.add(ItemId::Draught, 3);
                 inv.add(ItemId::Elixir, 1);
             }
-            let (result, battle) = fight(&mut party, &mut inv, &boss.formation(), BattleKind::Story(boss), seed * 7919 + 1);
+            let (result, battle) = fight(
+                &mut party,
+                &mut inv,
+                &boss.formation(),
+                BattleKind::Story(boss),
+                seed * 7919 + 1,
+            );
             if result == Result::Lost && boss == BattleId::Aurelian {
-                let enemies: Vec<String> = battle.units.iter().filter(|u| u.enemy.is_some()).map(|u| format!("{}:{}/{}", u.name, u.hp, u.max_hp)).collect();
-                println!("  lost phase {} after {} turns: {enemies:?}", battle.phase, battle.turns_taken);
+                let enemies: Vec<String> = battle
+                    .units
+                    .iter()
+                    .filter(|u| u.enemy.is_some())
+                    .map(|u| format!("{}:{}/{}", u.name, u.hp, u.max_hp))
+                    .collect();
+                println!(
+                    "  lost phase {} after {} turns: {enemies:?}",
+                    battle.phase, battle.turns_taken
+                );
             }
             if result == Result::Won {
                 wins += 1;
-                left += party.iter().map(|h| h.hp.max(0) as f32 / h.max_hp() as f32).sum::<f32>() / party.len() as f32;
+                left += party
+                    .iter()
+                    .map(|h| h.hp.max(0) as f32 / h.max_hp() as f32)
+                    .sum::<f32>()
+                    / party.len() as f32;
             }
         }
         worst = worst.min(wins);
-        report += &format!("{:<15} {level:>5}  {wins:>7}  {:>10.0}%\n", format!("{boss:?}"), if wins > 0 { left / wins as f32 * 100.0 } else { 0.0 });
+        report += &format!(
+            "{:<15} {level:>5}  {wins:>7}  {:>10.0}%\n",
+            format!("{boss:?}"),
+            if wins > 0 {
+                left / wins as f32 * 100.0
+            } else {
+                0.0
+            }
+        );
     }
     println!("{report}");
     assert!(worst >= 8, "a boss is too hard on auto\n{report}");

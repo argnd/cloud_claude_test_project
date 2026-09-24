@@ -62,10 +62,26 @@ impl Biome {
     pub fn floors(self) -> [Sprite; 3] {
         match self {
             Biome::Town => [Sprite::TownGrassA, Sprite::TownGrassB, Sprite::TownGrassC],
-            Biome::Undercroft => [Sprite::UndercroftFloorA, Sprite::UndercroftFloorB, Sprite::UndercroftFloorC],
-            Biome::Archive => [Sprite::ArchiveFloorA, Sprite::ArchiveFloorB, Sprite::ArchiveFloorC],
-            Biome::Hollows => [Sprite::HollowsFloorA, Sprite::HollowsFloorB, Sprite::HollowsFloorC],
-            Biome::Forge => [Sprite::ForgeFloorA, Sprite::ForgeFloorB, Sprite::ForgeFloorC],
+            Biome::Undercroft => [
+                Sprite::UndercroftFloorA,
+                Sprite::UndercroftFloorB,
+                Sprite::UndercroftFloorC,
+            ],
+            Biome::Archive => [
+                Sprite::ArchiveFloorA,
+                Sprite::ArchiveFloorB,
+                Sprite::ArchiveFloorC,
+            ],
+            Biome::Hollows => [
+                Sprite::HollowsFloorA,
+                Sprite::HollowsFloorB,
+                Sprite::HollowsFloorC,
+            ],
+            Biome::Forge => [
+                Sprite::ForgeFloorA,
+                Sprite::ForgeFloorB,
+                Sprite::ForgeFloorC,
+            ],
             Biome::Pale => [Sprite::PaleFloorA, Sprite::PaleFloorB, Sprite::PaleFloorC],
         }
     }
@@ -153,7 +169,10 @@ impl Tile {
     }
 
     pub fn blocks_sight(self) -> bool {
-        matches!(self, Tile::Wall | Tile::TownWall | Tile::Door | Tile::Bookshelf | Tile::Tree)
+        matches!(
+            self,
+            Tile::Wall | Tile::TownWall | Tile::Door | Tile::Bookshelf | Tile::Tree
+        )
     }
 }
 
@@ -189,9 +208,16 @@ pub enum Pickup {
     Shard(u8),
     Journal(u8),
     /// A unique quest item; `flag` records that it was taken.
-    Item { item: ItemId, flag: String },
+    Item {
+        item: ItemId,
+        flag: String,
+    },
     /// A scene that plays when stepped on (e.g. Ilsa's lantern).
-    Scene { scene: String, flag: String, sprite: Sprite },
+    Scene {
+        scene: String,
+        flag: String,
+        sprite: Sprite,
+    },
 }
 
 impl Pickup {
@@ -209,14 +235,35 @@ impl Pickup {
 pub enum EntityKind {
     /// Someone to talk to. Town NPCs pick their scene from the story state;
     /// others carry a fixed scene.
-    Npc { id: String, sprite: Sprite, scene: Option<String>, home: (i32, i32), wander: bool },
-    Monster { group: Vec<(EnemyId, u32)>, awake: bool, sleep: u8 },
-    Boss { battle: BattleId, scene: String, sprite: Sprite },
-    Chest { loot: Loot, opened: bool },
+    Npc {
+        id: String,
+        sprite: Sprite,
+        scene: Option<String>,
+        home: (i32, i32),
+        wander: bool,
+    },
+    Monster {
+        group: Vec<(EnemyId, u32)>,
+        awake: bool,
+        sleep: u8,
+    },
+    Boss {
+        battle: BattleId,
+        scene: String,
+        sprite: Sprite,
+    },
+    Chest {
+        loot: Loot,
+        opened: bool,
+    },
     Pickup(Pickup),
     Waystone,
     /// Scenery; `light` is a light radius in tiles (0 for none).
-    Decor { sprite: Sprite, light: f32, blocks: bool },
+    Decor {
+        sprite: Sprite,
+        light: f32,
+        blocks: bool,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -342,7 +389,11 @@ impl World {
     }
 
     pub fn tile(&self, p: (i32, i32)) -> Tile {
-        if self.in_bounds(p) { self.tiles[self.idx(p)] } else { Tile::Wall }
+        if self.in_bounds(p) {
+            self.tiles[self.idx(p)]
+        } else {
+            Tile::Wall
+        }
     }
 
     pub fn set(&mut self, p: (i32, i32), t: Tile) {
@@ -398,7 +449,11 @@ impl World {
             Tile::ShopDoor(shop) => return Move::Shop(shop),
             _ => {}
         }
-        if let Some(i) = self.entities.iter().position(|e| e.pos == to && matches!(e.kind, EntityKind::Pickup(_))) {
+        if let Some(i) = self
+            .entities
+            .iter()
+            .position(|e| e.pos == to && matches!(e.kind, EntityKind::Pickup(_)))
+        {
             return Move::Pickup(i);
         }
         Move::Moved
@@ -503,7 +558,9 @@ impl World {
                     }
                     *awake
                 }
-                EntityKind::Npc { wander: true, home, .. } => {
+                EntityKind::Npc {
+                    wander: true, home, ..
+                } => {
                     let home = *home;
                     if rng.random_bool(0.15) {
                         self.wander(i, rng, Some((home, 3)));
@@ -526,7 +583,10 @@ impl World {
             for dir in Dir::ALL {
                 let (dx, dy) = dir.delta();
                 let q = (pos.0 + dx, pos.1 + dy);
-                if !self.in_bounds(q) || !self.tile(q).walkable() || self.blocking_entity_at(q).is_some() {
+                if !self.in_bounds(q)
+                    || !self.tile(q).walkable()
+                    || self.blocking_entity_at(q).is_some()
+                {
                     continue;
                 }
                 let dq = dist[self.idx(q)];
@@ -549,26 +609,51 @@ impl World {
         let (dx, dy) = dir.delta();
         let pos = self.entities[i].pos;
         let q = (pos.0 + dx, pos.1 + dy);
-        if !self.in_bounds(q) || q == self.player || !self.tile(q).walkable() || self.entity_at(q).is_some() {
+        if !self.in_bounds(q)
+            || q == self.player
+            || !self.tile(q).walkable()
+            || self.entity_at(q).is_some()
+        {
             return;
         }
-        if matches!(self.tile(q), Tile::Stairs | Tile::VaultGate | Tile::ShopDoor(_) | Tile::OpenDoor) {
+        if matches!(
+            self.tile(q),
+            Tile::Stairs | Tile::VaultGate | Tile::ShopDoor(_) | Tile::OpenDoor
+        ) {
             return;
         }
-        if let Some((home, r)) = leash {
-            if (q.0 - home.0).abs() + (q.1 - home.1).abs() > r {
-                return;
-            }
+        if let Some((home, r)) = leash
+            && (q.0 - home.0).abs() + (q.1 - home.1).abs() > r
+        {
+            return;
         }
         self.entities[i].pos = q;
     }
 
     /// A free walkable tile next to `p` (for placing things).
     pub fn free_neighbour(&self, p: (i32, i32)) -> Option<(i32, i32)> {
-        let ring = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)];
+        let ring = [
+            (1, 0),
+            (-1, 0),
+            (0, 1),
+            (0, -1),
+            (1, 1),
+            (-1, -1),
+            (1, -1),
+            (-1, 1),
+        ];
         ring.iter()
             .map(|&(dx, dy)| (p.0 + dx, p.1 + dy))
-            .find(|&q| self.in_bounds(q) && self.tile(q).walkable() && self.entity_at(q).is_none() && q != self.player && matches!(self.tile(q), Tile::Floor | Tile::Grass | Tile::Path | Tile::Wood))
+            .find(|&q| {
+                self.in_bounds(q)
+                    && self.tile(q).walkable()
+                    && self.entity_at(q).is_none()
+                    && q != self.player
+                    && matches!(
+                        self.tile(q),
+                        Tile::Floor | Tile::Grass | Tile::Path | Tile::Wood
+                    )
+            })
     }
 
     pub fn remove_entity(&mut self, i: usize) {
@@ -578,7 +663,8 @@ impl World {
     }
 
     pub fn remove_npc(&mut self, id: &str) {
-        self.entities.retain(|e| !matches!(&e.kind, EntityKind::Npc { id: n, .. } if n == id));
+        self.entities
+            .retain(|e| !matches!(&e.kind, EntityKind::Npc { id: n, .. } if n == id));
     }
 
     /// After a load: rebuild what isn't saved.

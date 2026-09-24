@@ -123,10 +123,10 @@ impl Dialogue {
         }
         self.age += input.dt;
         self.line_age += input.dt;
-        if self.beat.is_none() {
-            if let Some(out) = self.fetch(game) {
-                return out;
-            }
+        if self.beat.is_none()
+            && let Some(out) = self.fetch(game)
+        {
+            return out;
         }
         let style = style_for(&self.runner.scene);
         let beat = self.beat.clone().unwrap();
@@ -144,7 +144,17 @@ impl Dialogue {
                     }
                 }
                 let complete = self.shown >= len;
-                self.draw_line(painter, gfx, screen, style, speaker, text, self.shown as usize, complete, time);
+                self.draw_line(
+                    painter,
+                    gfx,
+                    screen,
+                    style,
+                    speaker,
+                    text,
+                    self.shown as usize,
+                    complete,
+                    time,
+                );
                 if (input.confirm || input.click) && self.line_age > 0.12 {
                     if !complete {
                         self.shown = len;
@@ -157,12 +167,24 @@ impl Dialogue {
                 let rows: Vec<Row> = options.iter().map(|(t, _)| Row::new(t.clone())).collect();
                 let h = rows.len() as f32 * 34.0 + 24.0;
                 let w = 620.0f32.min(screen.width() - 80.0);
-                let rect = Rect::from_center_size(pos2(screen.center().x, screen.bottom() - 240.0 - h / 2.0), vec2(w, h));
+                let rect = Rect::from_center_size(
+                    pos2(screen.center().x, screen.bottom() - 240.0 - h / 2.0),
+                    vec2(w, h),
+                );
                 if style != Style::Box {
                     painter.rect_filled(screen, CornerRadius::ZERO, Color32::from_black_alpha(200));
                 }
                 gfx::panel(painter, rect);
-                let r = widgets::list(painter, gfx, rect.shrink2(vec2(12.0, 12.0)), &rows, &mut self.choice, input, true, time);
+                let r = widgets::list(
+                    painter,
+                    gfx,
+                    rect.shrink2(vec2(12.0, 12.0)),
+                    &rows,
+                    &mut self.choice,
+                    input,
+                    true,
+                    time,
+                );
                 if r.moved {
                     audio.play_sfx(Sfx::MenuMove);
                 }
@@ -181,31 +203,88 @@ impl Dialogue {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn draw_line(&self, painter: &egui::Painter, gfx: &Gfx, screen: Rect, style: Style, speaker: &str, text: &str, shown: usize, complete: bool, time: f64) {
+    fn draw_line(
+        &self,
+        painter: &egui::Painter,
+        gfx: &Gfx,
+        screen: Rect,
+        style: Style,
+        speaker: &str,
+        text: &str,
+        shown: usize,
+        complete: bool,
+        time: f64,
+    ) {
         let (name, portrait) = story::speaker_info(speaker).unwrap_or(("", None));
         let blink = ((time * 3.0) as i64 % 2 == 0) && complete;
         match style {
             Style::Box => {
                 let h = 190.0;
-                let rect = Rect::from_min_size(pos2(screen.left() + 40.0, screen.bottom() - h - 28.0), vec2(screen.width() - 80.0, h));
+                let rect = Rect::from_min_size(
+                    pos2(screen.left() + 40.0, screen.bottom() - h - 28.0),
+                    vec2(screen.width() - 80.0, h),
+                );
                 gfx::panel(painter, rect);
                 let mut text_left = rect.left() + 28.0;
                 if let Some(p) = portrait {
-                    let pr = Rect::from_min_size(rect.left_top() + vec2(18.0, 20.0), vec2(150.0, 150.0));
+                    let pr =
+                        Rect::from_min_size(rect.left_top() + vec2(18.0, 20.0), vec2(150.0, 150.0));
                     gfx::portrait(gfx, painter, pr, p, false);
                     text_left = pr.right() + 26.0;
                 }
                 if !name.is_empty() {
-                    let plate = Rect::from_min_size(pos2(text_left - 8.0, rect.top() - 20.0), vec2(name.len() as f32 * 14.0 + 40.0, 38.0));
-                    painter.rect_filled(plate, CornerRadius::same(6), Color32::from_rgb(40, 28, 22));
-                    painter.rect_stroke(plate, CornerRadius::same(6), Stroke::new(1.5, GOLD), egui::StrokeKind::Inside);
-                    gfx::text(painter, plate.center(), Align2::CENTER_CENTER, name, gfx::heading_font(21.0), GOLD);
+                    let plate = Rect::from_min_size(
+                        pos2(text_left - 8.0, rect.top() - 20.0),
+                        vec2(name.len() as f32 * 14.0 + 40.0, 38.0),
+                    );
+                    painter.rect_filled(
+                        plate,
+                        CornerRadius::same(6),
+                        Color32::from_rgb(40, 28, 22),
+                    );
+                    painter.rect_stroke(
+                        plate,
+                        CornerRadius::same(6),
+                        Stroke::new(1.5, GOLD),
+                        egui::StrokeKind::Inside,
+                    );
+                    gfx::text(
+                        painter,
+                        plate.center(),
+                        Align2::CENTER_CENTER,
+                        name,
+                        gfx::heading_font(21.0),
+                        GOLD,
+                    );
                 }
-                let font = if speaker == "narrator" { gfx::italic_font(25.0) } else { gfx::body_font(25.0) };
-                let colour = if speaker == "narrator" { Color32::from_rgb(210, 200, 230) } else { PARCHMENT };
-                gfx::reveal(painter, pos2(text_left, rect.top() + 30.0), rect.right() - text_left - 30.0, text, shown, font, colour, false);
+                let font = if speaker == "narrator" {
+                    gfx::italic_font(25.0)
+                } else {
+                    gfx::body_font(25.0)
+                };
+                let colour = if speaker == "narrator" {
+                    Color32::from_rgb(210, 200, 230)
+                } else {
+                    PARCHMENT
+                };
+                gfx::reveal(
+                    painter,
+                    pos2(text_left, rect.top() + 30.0),
+                    rect.right() - text_left - 30.0,
+                    text,
+                    shown,
+                    font,
+                    colour,
+                    false,
+                );
                 if blink {
-                    gfx::triangle(painter, rect.right_bottom() - vec2(26.0, 20.0), 14.0, true, GOLD);
+                    gfx::triangle(
+                        painter,
+                        rect.right_bottom() - vec2(26.0, 20.0),
+                        14.0,
+                        true,
+                        GOLD,
+                    );
                 }
             }
             Style::Cinema | Style::Memory | Style::Journal => {
@@ -215,9 +294,16 @@ impl Dialogue {
                 };
                 // Each ending has its own light.
                 let wash = match self.runner.scene.as_str() {
-                    s if s.starts_with("ending_dawn") => Some((Color32::from_rgb(34, 22, 58), Color32::from_rgb(150, 96, 40))),
-                    s if s.starts_with("ending_oath") => Some((Color32::from_rgb(20, 8, 6), Color32::from_rgb(110, 44, 12))),
-                    s if s.starts_with("ending_dark") => Some((Color32::from_rgb(4, 6, 14), Color32::from_rgb(24, 36, 60))),
+                    s if s.starts_with("ending_dawn") => Some((
+                        Color32::from_rgb(34, 22, 58),
+                        Color32::from_rgb(150, 96, 40),
+                    )),
+                    s if s.starts_with("ending_oath") => {
+                        Some((Color32::from_rgb(20, 8, 6), Color32::from_rgb(110, 44, 12)))
+                    }
+                    s if s.starts_with("ending_dark") => {
+                        Some((Color32::from_rgb(4, 6, 14), Color32::from_rgb(24, 36, 60)))
+                    }
                     _ => None,
                 };
                 if let Some((top, bottom)) = wash {
@@ -226,8 +312,19 @@ impl Dialogue {
                     for i in 0..30 {
                         let f = i as f32 * 3.7;
                         let x = screen.left() + ((f.sin() * 9973.0).fract().abs()) * screen.width();
-                        let y = screen.bottom() - ((t * (10.0 + (i % 4) as f32 * 6.0) + i as f32 * 71.0) % screen.height());
-                        painter.circle_filled(pos2(x, y), 1.5 + (i % 3) as f32, Color32::from_rgba_unmultiplied(bottom.r().saturating_add(80), bottom.g().saturating_add(80), bottom.b().saturating_add(60), 110));
+                        let y = screen.bottom()
+                            - ((t * (10.0 + (i % 4) as f32 * 6.0) + i as f32 * 71.0)
+                                % screen.height());
+                        painter.circle_filled(
+                            pos2(x, y),
+                            1.5 + (i % 3) as f32,
+                            Color32::from_rgba_unmultiplied(
+                                bottom.r().saturating_add(80),
+                                bottom.g().saturating_add(80),
+                                bottom.b().saturating_add(60),
+                                110,
+                            ),
+                        );
                     }
                 } else {
                     painter.rect_filled(screen, CornerRadius::ZERO, overlay);
@@ -236,41 +333,133 @@ impl Dialogue {
                     // Drifting motes of remembered light.
                     for i in 0..40 {
                         let f = i as f32 * 12.9898;
-                        let x = screen.left() + ((f.sin() * 43758.545).fract().abs()) * screen.width();
+                        let x =
+                            screen.left() + ((f.sin() * 43758.545).fract().abs()) * screen.width();
                         let speed = 12.0 + (i % 7) as f32 * 5.0;
-                        let y = screen.bottom() - ((time as f32 * speed + i as f32 * 97.0) % screen.height());
+                        let y = screen.bottom()
+                            - ((time as f32 * speed + i as f32 * 97.0) % screen.height());
                         let a = (0.3 + 0.3 * ((time as f32 + f).sin())).max(0.0);
-                        painter.circle_filled(pos2(x, y), 1.5 + (i % 3) as f32, Color32::from_rgba_unmultiplied(170, 210, 255, (a * 255.0) as u8));
+                        painter.circle_filled(
+                            pos2(x, y),
+                            1.5 + (i % 3) as f32,
+                            Color32::from_rgba_unmultiplied(170, 210, 255, (a * 255.0) as u8),
+                        );
                     }
-                    gfx::text(painter, pos2(screen.center().x, screen.top() + 60.0), Align2::CENTER_CENTER, "— A Memory —", gfx::heading_font(22.0), Color32::from_rgb(160, 200, 255));
+                    gfx::text(
+                        painter,
+                        pos2(screen.center().x, screen.top() + 60.0),
+                        Align2::CENTER_CENTER,
+                        "— A Memory —",
+                        gfx::heading_font(22.0),
+                        Color32::from_rgb(160, 200, 255),
+                    );
                 }
                 let width = (screen.width() - 200.0).min(900.0);
                 if style == Style::Journal {
                     let page = Rect::from_center_size(screen.center(), vec2(width + 80.0, 420.0));
-                    painter.rect_filled(page, CornerRadius::same(4), Color32::from_rgb(226, 212, 180));
-                    painter.rect_stroke(page, CornerRadius::same(4), Stroke::new(2.0, Color32::from_rgb(120, 90, 60)), egui::StrokeKind::Inside);
-                    gfx::text(painter, pos2(page.center().x, page.top() + 36.0), Align2::CENTER_CENTER, "From Ilsa's journal", gfx::heading_font(20.0), Color32::from_rgb(110, 70, 40));
-                    let est = painter.layout(text.to_string(), gfx::italic_font(27.0), Color32::BLACK, width).size().y;
-                    gfx::reveal(painter, pos2(page.center().x, page.center().y - est / 2.0 + 10.0), width, text, shown, gfx::italic_font(27.0), Color32::from_rgb(50, 36, 30), true);
+                    painter.rect_filled(
+                        page,
+                        CornerRadius::same(4),
+                        Color32::from_rgb(226, 212, 180),
+                    );
+                    painter.rect_stroke(
+                        page,
+                        CornerRadius::same(4),
+                        Stroke::new(2.0, Color32::from_rgb(120, 90, 60)),
+                        egui::StrokeKind::Inside,
+                    );
+                    gfx::text(
+                        painter,
+                        pos2(page.center().x, page.top() + 36.0),
+                        Align2::CENTER_CENTER,
+                        "From Ilsa's journal",
+                        gfx::heading_font(20.0),
+                        Color32::from_rgb(110, 70, 40),
+                    );
+                    let est = painter
+                        .layout(
+                            text.to_string(),
+                            gfx::italic_font(27.0),
+                            Color32::BLACK,
+                            width,
+                        )
+                        .size()
+                        .y;
+                    gfx::reveal(
+                        painter,
+                        pos2(page.center().x, page.center().y - est / 2.0 + 10.0),
+                        width,
+                        text,
+                        shown,
+                        gfx::italic_font(27.0),
+                        Color32::from_rgb(50, 36, 30),
+                        true,
+                    );
                     if blink {
-                        gfx::triangle(painter, page.right_bottom() - vec2(30.0, 24.0), 14.0, true, Color32::from_rgb(110, 70, 40));
+                        gfx::triangle(
+                            painter,
+                            page.right_bottom() - vec2(30.0, 24.0),
+                            14.0,
+                            true,
+                            Color32::from_rgb(110, 70, 40),
+                        );
                     }
                     return;
                 }
                 let mut y = screen.center().y - 40.0;
                 if let Some(p) = portrait {
-                    let pr = Rect::from_center_size(pos2(screen.center().x, y - 110.0), vec2(120.0, 120.0));
+                    let pr = Rect::from_center_size(
+                        pos2(screen.center().x, y - 110.0),
+                        vec2(120.0, 120.0),
+                    );
                     gfx::portrait(gfx, painter, pr, p, false);
-                    gfx::text(painter, pos2(screen.center().x, pr.bottom() + 20.0), Align2::CENTER_CENTER, name, gfx::heading_font(20.0), GOLD);
+                    gfx::text(
+                        painter,
+                        pos2(screen.center().x, pr.bottom() + 20.0),
+                        Align2::CENTER_CENTER,
+                        name,
+                        gfx::heading_font(20.0),
+                        GOLD,
+                    );
                     y += 10.0;
                 } else if !name.is_empty() {
-                    gfx::text(painter, pos2(screen.center().x, y - 40.0), Align2::CENTER_CENTER, name, gfx::heading_font(20.0), Color32::from_rgb(190, 215, 255));
+                    gfx::text(
+                        painter,
+                        pos2(screen.center().x, y - 40.0),
+                        Align2::CENTER_CENTER,
+                        name,
+                        gfx::heading_font(20.0),
+                        Color32::from_rgb(190, 215, 255),
+                    );
                 }
-                let font = if speaker == "narrator" || speaker == "lira" { gfx::italic_font(29.0) } else { gfx::body_font(28.0) };
-                let colour = if style == Style::Memory { Color32::from_rgb(214, 230, 255) } else { PARCHMENT };
-                gfx::reveal(painter, pos2(screen.center().x, y), width, text, shown, font, colour, true);
+                let font = if speaker == "narrator" || speaker == "lira" {
+                    gfx::italic_font(29.0)
+                } else {
+                    gfx::body_font(28.0)
+                };
+                let colour = if style == Style::Memory {
+                    Color32::from_rgb(214, 230, 255)
+                } else {
+                    PARCHMENT
+                };
+                gfx::reveal(
+                    painter,
+                    pos2(screen.center().x, y),
+                    width,
+                    text,
+                    shown,
+                    font,
+                    colour,
+                    true,
+                );
                 if blink {
-                    gfx::triangle(painter, pos2(screen.center().x, screen.bottom() - 50.0), 16.0, true, GOLD);
+                    gfx::triangle(
+                        painter,
+                        pos2(screen.center().x, screen.bottom() - 50.0),
+                        16.0,
+                        true,
+                        GOLD,
+                    );
                 }
             }
         }

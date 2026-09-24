@@ -6,15 +6,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::audio::{Sfx, Track};
+use crate::data::Element;
 use crate::data::enemies::{BattleId, EnemyId};
 use crate::data::heroes::HeroId;
 use crate::data::items::{ItemId, ItemKind, Use};
 use crate::data::quests::{QuestId, Requirement};
-use crate::data::Element;
 use crate::rpg::{Hero, Inventory};
 use crate::story::{StoryContext, Visual};
 use crate::world::floor::{self, boss_flag};
-use crate::world::{town, EntityKind, Place, Shop, World};
+use crate::world::{EntityKind, Place, Shop, World, town};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Difficulty {
@@ -140,12 +140,26 @@ impl Game {
                 game.join(h);
             }
         }
-        for (f, b) in [(3, BattleId::Vex), (4, BattleId::Gristlemaw), (8, BattleId::Curator), (12, BattleId::MotherOfSpores), (16, BattleId::IronWarden), (19, BattleId::Ilsa)] {
+        for (f, b) in [
+            (3, BattleId::Vex),
+            (4, BattleId::Gristlemaw),
+            (8, BattleId::Curator),
+            (12, BattleId::MotherOfSpores),
+            (16, BattleId::IronWarden),
+            (19, BattleId::Ilsa),
+        ] {
             if floor > f {
                 game.set_flag(&boss_flag(b));
             }
         }
-        for flag in ["elder_met", "seen_intro", "seen_wake", "seen_vaultgate_first", "seen_waystone_first", "mouser_found"] {
+        for flag in [
+            "elder_met",
+            "seen_intro",
+            "seen_wake",
+            "seen_vaultgate_first",
+            "seen_waystone_first",
+            "mouser_found",
+        ] {
             game.set_flag(flag);
         }
         if floor > 8 {
@@ -156,7 +170,11 @@ impl Game {
             for slot in [EquipSlot::Weapon, EquipSlot::Armor] {
                 let best = ItemId::ALL
                     .into_iter()
-                    .filter(|it| it.def().tier == tier && it.def().slot() == Some(slot) && game.party[i].can_equip(*it))
+                    .filter(|it| {
+                        it.def().tier == tier
+                            && it.def().slot() == Some(slot)
+                            && game.party[i].can_equip(*it)
+                    })
                     .max_by_key(|it| {
                         let s = it.def().stats;
                         s.atk + s.mag + s.def + s.res
@@ -255,7 +273,10 @@ impl Game {
     pub fn enter_floor(&mut self, n: u32) {
         let visits = self.floor_visits.entry(n).or_insert(0);
         *visits += 1;
-        let seed = self.seed.wrapping_add(n as u64 * 7919).wrapping_add(*visits as u64 * 104_729);
+        let seed = self
+            .seed
+            .wrapping_add(n as u64 * 7919)
+            .wrapping_add(*visits as u64 * 104_729);
         self.world = floor::build(n, seed, &self.flags);
         self.deepest = self.deepest.max(n);
     }
@@ -346,7 +367,11 @@ impl Game {
         if self.flag(&q.done_flag()) {
             QuestState::Done
         } else if self.flag(&q.active_flag()) {
-            if self.requirement_met(q) { QuestState::Ready } else { QuestState::Active }
+            if self.requirement_met(q) {
+                QuestState::Ready
+            } else {
+                QuestState::Active
+            }
         } else {
             QuestState::Hidden
         }
@@ -375,7 +400,9 @@ impl Game {
             }
             match self.quest_state(q) {
                 QuestState::Ready => return format!("quest_{}_done", q.script_id()),
-                QuestState::Hidden if self.act() >= def.from_act => return format!("quest_{}_offer", q.script_id()),
+                QuestState::Hidden if self.act() >= def.from_act => {
+                    return format!("quest_{}_offer", q.script_id());
+                }
                 _ => {}
             }
         }
@@ -388,7 +415,7 @@ impl Game {
         for q in QuestId::ALL {
             if q.def().giver == Some(npc) && self.quest_state(q) == QuestState::Active {
                 // Alternate reminders with ordinary chatter.
-                if self.stats.steps % 2 == 0 {
+                if self.stats.steps.is_multiple_of(2) {
                     return format!("quest_{}_remind", q.script_id());
                 }
             }
@@ -397,11 +424,15 @@ impl Game {
     }
 
     pub fn shards(&self) -> Vec<u8> {
-        (1..=12).filter(|n| self.flag(&format!("shard_{n}"))).collect()
+        (1..=12)
+            .filter(|n| self.flag(&format!("shard_{n}")))
+            .collect()
     }
 
     pub fn journals(&self) -> Vec<u8> {
-        (1..=5).filter(|n| self.flag(&format!("journal_{n}"))).collect()
+        (1..=5)
+            .filter(|n| self.flag(&format!("journal_{n}")))
+            .collect()
     }
 
     pub fn update_shard_flag(&mut self) {
@@ -422,10 +453,18 @@ impl Game {
                     return false;
                 }
                 match shop {
-                    Shop::Smith => d.slot().is_some() && (d.tier + 1 >= act || matches!(d.kind, ItemKind::Accessory)),
-                    Shop::Apothecary => matches!(d.kind, ItemKind::Consumable(_)) && *i != ItemId::HearthBread,
+                    Shop::Smith => {
+                        d.slot().is_some()
+                            && (d.tier + 1 >= act || matches!(d.kind, ItemKind::Accessory))
+                    }
+                    Shop::Apothecary => {
+                        matches!(d.kind, ItemKind::Consumable(_)) && *i != ItemId::HearthBread
+                    }
                     Shop::Inn => *i == ItemId::HearthBread || *i == ItemId::Tonic,
-                    Shop::Temple => matches!(i, ItemId::EmberDown | ItemId::Panacea | ItemId::WaystoneShard),
+                    Shop::Temple => matches!(
+                        i,
+                        ItemId::EmberDown | ItemId::Panacea | ItemId::WaystoneShard
+                    ),
                 }
             })
             .collect()
@@ -500,7 +539,11 @@ impl StoryContext for Game {
     fn give(&mut self, item: ItemId, count: u32) {
         self.inventory.add(item, count);
         let name = item.def().name;
-        let text = if count > 1 { format!("Received {name} ×{count}") } else { format!("Received {name}") };
+        let text = if count > 1 {
+            format!("Received {name} ×{count}")
+        } else {
+            format!("Received {name}")
+        };
         self.pending.push(Pending::Notice(text));
         self.pending.push(Pending::Sfx(Sfx::ItemGet));
     }
@@ -510,7 +553,8 @@ impl StoryContext for Game {
     fn gold(&mut self, amount: i32) {
         if amount >= 0 {
             self.gold += amount as u32;
-            self.pending.push(Pending::Notice(format!("Received {amount} gold")));
+            self.pending
+                .push(Pending::Notice(format!("Received {amount} gold")));
             self.pending.push(Pending::Sfx(Sfx::Coin));
         } else {
             self.gold = self.gold.saturating_sub((-amount) as u32);
@@ -522,14 +566,18 @@ impl StoryContext for Game {
     fn quest_start(&mut self, quest: QuestId) {
         if !self.flag(&quest.done_flag()) && !self.flag(&quest.active_flag()) {
             self.flags.insert(quest.active_flag());
-            self.pending.push(Pending::Notice(format!("New quest: {}", quest.def().name)));
+            self.pending
+                .push(Pending::Notice(format!("New quest: {}", quest.def().name)));
         }
     }
     fn quest_done(&mut self, quest: QuestId) {
         if !self.flag(&quest.done_flag()) {
             self.flags.remove(&quest.active_flag());
             self.flags.insert(quest.done_flag());
-            self.pending.push(Pending::Notice(format!("Quest complete: {}", quest.def().name)));
+            self.pending.push(Pending::Notice(format!(
+                "Quest complete: {}",
+                quest.def().name
+            )));
             self.pending.push(Pending::Sfx(Sfx::LevelUp));
         }
     }

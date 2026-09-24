@@ -49,13 +49,21 @@ fn every_floor_is_connected_and_populated() {
     for n in 1..=LAST_FLOOR {
         for seed in [1u64, 77, 2024, 31337] {
             let world = floor::build(n, seed, &flags);
-            let monsters = world.entities.iter().filter(|e| matches!(e.kind, EntityKind::Monster { .. })).count();
+            let monsters = world
+                .entities
+                .iter()
+                .filter(|e| matches!(e.kind, EntityKind::Monster { .. }))
+                .count();
             assert!(monsters >= 6, "floor {n}: only {monsters} monsters");
             for e in &world.entities {
                 if matches!(e.kind, EntityKind::Decor { .. }) {
                     continue;
                 }
-                assert!(reachable(&world, e.pos), "floor {n}: {:?} unreachable", e.kind);
+                assert!(
+                    reachable(&world, e.pos),
+                    "floor {n}: {:?} unreachable",
+                    e.kind
+                );
             }
             if n < LAST_FLOOR {
                 let stairs = (0..world.h)
@@ -64,7 +72,11 @@ fn every_floor_is_connected_and_populated() {
                     .expect("stairs");
                 assert!(reachable(&world, stairs), "floor {n}: stairs unreachable");
             }
-            let bosses = world.entities.iter().filter(|e| matches!(e.kind, EntityKind::Boss { .. })).count();
+            let bosses = world
+                .entities
+                .iter()
+                .filter(|e| matches!(e.kind, EntityKind::Boss { .. }))
+                .count();
             let expected = floor::boss_of(n).is_some() as usize + (n == 3) as usize;
             assert_eq!(bosses, expected, "floor {n}");
         }
@@ -74,7 +86,11 @@ fn every_floor_is_connected_and_populated() {
 #[test]
 fn collected_uniques_do_not_return() {
     let mut flags = BTreeSet::new();
-    let shard = |w: &World| w.entities.iter().any(|e| matches!(e.kind, EntityKind::Pickup(Pickup::Shard(1))));
+    let shard = |w: &World| {
+        w.entities
+            .iter()
+            .any(|e| matches!(e.kind, EntityKind::Pickup(Pickup::Shard(1))))
+    };
     assert!(shard(&floor::build(2, 5, &flags)));
     flags.insert("shard_1".to_string());
     assert!(!shard(&floor::build(2, 5, &flags)));
@@ -89,7 +105,11 @@ fn walking_opens_doors_and_monsters_chase() {
     assert_eq!(world.try_move(Dir::Right), Move::Moved);
     world.entities.push(Entity {
         pos: (6, 1),
-        kind: EntityKind::Monster { group: vec![(crate::data::enemies::EnemyId::SewerRat, 1)], awake: false, sleep: 0 },
+        kind: EntityKind::Monster {
+            group: vec![(crate::data::enemies::EnemyId::SewerRat, 1)],
+            awake: false,
+            sleep: 0,
+        },
     });
     world.update_fov();
     let mut rng = rand::rngs::StdRng::seed_from_u64(1);
@@ -103,4 +123,3 @@ fn walking_opens_doors_and_monsters_chase() {
     }
     assert_eq!(touched, Some(0));
 }
-

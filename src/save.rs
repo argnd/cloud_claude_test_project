@@ -25,7 +25,11 @@ pub fn dir() -> PathBuf {
 }
 
 fn slot_path(slot: usize) -> PathBuf {
-    dir().join(if slot == 0 { "autosave.json".to_string() } else { format!("slot{slot}.json") })
+    dir().join(if slot == 0 {
+        "autosave.json".to_string()
+    } else {
+        format!("slot{slot}.json")
+    })
 }
 
 pub fn write(slot: usize, game: &Game) -> Result<(), String> {
@@ -61,7 +65,13 @@ pub fn describe(slot: usize) -> Option<String> {
 pub fn any_save() -> Option<usize> {
     // The most recently written slot.
     (0..SLOTS)
-        .filter_map(|s| fs::metadata(slot_path(s)).ok()?.modified().ok().map(|m| (m, s)))
+        .filter_map(|s| {
+            fs::metadata(slot_path(s))
+                .ok()?
+                .modified()
+                .ok()
+                .map(|m| (m, s))
+        })
         .max()
         .map(|(_, s)| s)
 }
@@ -78,7 +88,13 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { music: 0.7, sfx: 0.8, text_speed: 55.0, fullscreen: false, battle_speed: 1.0 }
+        Self {
+            music: 0.7,
+            sfx: 0.8,
+            text_speed: 55.0,
+            fullscreen: false,
+            battle_speed: 1.0,
+        }
     }
 }
 

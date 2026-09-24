@@ -31,9 +31,16 @@ pub struct Input {
 impl Input {
     pub fn read(ctx: &egui::Context) -> Self {
         ctx.input(|i| {
-            let mut input = Input { dt: i.stable_dt.min(0.1), pointer: i.pointer.hover_pos(), ..Default::default() };
+            let mut input = Input {
+                dt: i.stable_dt.min(0.1),
+                pointer: i.pointer.hover_pos(),
+                ..Default::default()
+            };
             for event in &i.events {
-                if let egui::Event::Key { key, pressed: true, .. } = event {
+                if let egui::Event::Key {
+                    key, pressed: true, ..
+                } = event
+                {
                     input.any_key = true;
                     match key {
                         Key::ArrowUp | Key::W | Key::K => input.up = true,
@@ -85,6 +92,11 @@ impl Input {
         let dt = self.dt;
         let pointer = self.pointer;
         let fast = self.fast;
-        *self = Input { dt, pointer, fast, ..Default::default() };
+        *self = Input {
+            dt,
+            pointer,
+            fast,
+            ..Default::default()
+        };
     }
 }

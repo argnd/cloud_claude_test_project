@@ -21,7 +21,9 @@ fn main() {
     for path in &files {
         println!("cargo:rerun-if-changed={}", path.display());
         let name = path.file_name().unwrap().to_string_lossy();
-        out += &format!("    ({name:?}, include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/assets/story/{name}\"))),\n");
+        out += &format!(
+            "    ({name:?}, include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/assets/story/{name}\"))),\n"
+        );
     }
     out += "];\n";
     let dest = Path::new(&env::var("OUT_DIR").unwrap()).join("story_files.rs");

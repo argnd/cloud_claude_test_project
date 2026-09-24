@@ -41,7 +41,11 @@ pub enum Visual {
 pub enum Command {
     Flag(String),
     Unflag(String),
-    If { flag: String, target: String, negate: bool },
+    If {
+        flag: String,
+        target: String,
+        negate: bool,
+    },
     Goto(String),
     Give(ItemId, u32),
     Take(ItemId, u32),
@@ -145,7 +149,11 @@ fn parse_command(text: &str) -> Result<Command, String> {
     let mut words = text.split_whitespace();
     let name = words.next().ok_or("empty command")?;
     let rest: Vec<&str> = words.collect();
-    let arg = |i: usize| rest.get(i).copied().ok_or_else(|| format!("!{name} needs more arguments"));
+    let arg = |i: usize| {
+        rest.get(i)
+            .copied()
+            .ok_or_else(|| format!("!{name} needs more arguments"))
+    };
     let count = |i: usize| -> Result<u32, String> {
         match rest.get(i) {
             None => Ok(1),
@@ -158,7 +166,11 @@ fn parse_command(text: &str) -> Result<Command, String> {
         if rest.len() != 3 || rest[1] != "=>" {
             return Err(format!("expected `!{name} flag => scene`"));
         }
-        Ok(Command::If { flag: rest[0].to_string(), target: rest[2].to_string(), negate })
+        Ok(Command::If {
+            flag: rest[0].to_string(),
+            target: rest[2].to_string(),
+            negate,
+        })
     };
     Ok(match name {
         "flag" => Command::Flag(arg(0)?.to_string()),
@@ -171,17 +183,25 @@ fn parse_command(text: &str) -> Result<Command, String> {
         "gold" => Command::Gold(arg(0)?.parse().map_err(|_| "bad gold amount".to_string())?),
         "join" => Command::Join(HeroId::from_script_id(arg(0)?).ok_or("unknown hero")?),
         "quest" => {
-            let quest = QuestId::from_script_id(arg(1)?).ok_or_else(|| format!("unknown quest {:?}", rest[1]))?;
+            let quest = QuestId::from_script_id(arg(1)?)
+                .ok_or_else(|| format!("unknown quest {:?}", rest[1]))?;
             match arg(0)? {
                 "start" => Command::QuestStart(quest),
                 "done" => Command::QuestDone(quest),
                 other => return Err(format!("!quest {other}?")),
             }
         }
-        "battle" => Command::Battle(BattleId::from_script_id(arg(0)?).ok_or_else(|| format!("unknown battle {:?}", rest[0]))?),
+        "battle" => Command::Battle(
+            BattleId::from_script_id(arg(0)?)
+                .ok_or_else(|| format!("unknown battle {:?}", rest[0]))?,
+        ),
         "heal" => Command::Heal,
-        "music" => Command::Music(track_named(arg(0)?).ok_or_else(|| format!("unknown track {:?}", rest[0]))?),
-        "sfx" => Command::Sfx(sfx_named(arg(0)?).ok_or_else(|| format!("unknown sfx {:?}", rest[0]))?),
+        "music" => Command::Music(
+            track_named(arg(0)?).ok_or_else(|| format!("unknown track {:?}", rest[0]))?,
+        ),
+        "sfx" => {
+            Command::Sfx(sfx_named(arg(0)?).ok_or_else(|| format!("unknown sfx {:?}", rest[0]))?)
+        }
         "shake" => Command::Visual(Visual::Shake),
         "flash" => Command::Visual(Visual::Flash),
         "fade" => Command::Visual(Visual::Fade),
@@ -204,7 +224,11 @@ fn parse_choice(text: &str) -> Result<ChoiceOpt, String> {
         (None, body)
     };
     let (label, target) = body.rsplit_once("=>").ok_or("choice needs `=> target`")?;
-    Ok(ChoiceOpt { flag, text: label.trim().to_string(), target: target.trim().to_string() })
+    Ok(ChoiceOpt {
+        flag,
+        text: label.trim().to_string(),
+        target: target.trim().to_string(),
+    })
 }
 
 impl Script {
@@ -213,7 +237,11 @@ impl Script {
         for &(file, text) in files {
             let mut current: Option<Scene> = None;
             for (n, raw) in text.lines().enumerate() {
-                let err = |message: String| ParseError { file: file.to_string(), line: n + 1, message };
+                let err = |message: String| ParseError {
+                    file: file.to_string(),
+                    line: n + 1,
+                    message,
+                };
                 let line = raw.trim();
                 if line.is_empty() || line.starts_with('#') {
                     continue;
@@ -222,15 +250,23 @@ impl Script {
                     if let Some(done) = current.take() {
                         script.insert(done).map_err(err)?;
                     }
-                    current = Some(Scene { id: id.trim().to_string(), ops: Vec::new() });
+                    current = Some(Scene {
+                        id: id.trim().to_string(),
+                        ops: Vec::new(),
+                    });
                     continue;
                 }
                 let Some(scene) = current.as_mut() else {
                     return Err(err("statement before the first === scene".into()));
                 };
                 if let Some(body) = line.strip_prefix('@') {
-                    let (speaker, text) = body.split_once(':').ok_or_else(|| err("expected `@speaker: text`".into()))?;
-                    scene.ops.push(Op::Line { speaker: speaker.trim().to_string(), text: text.trim().to_string() });
+                    let (speaker, text) = body
+                        .split_once(':')
+                        .ok_or_else(|| err("expected `@speaker: text`".into()))?;
+                    scene.ops.push(Op::Line {
+                        speaker: speaker.trim().to_string(),
+                        text: text.trim().to_string(),
+                    });
                 } else if let Some(body) = line.strip_prefix('!') {
                     scene.ops.push(Op::Cmd(parse_command(body).map_err(err)?));
                 } else if line.starts_with('?') {
@@ -245,9 +281,11 @@ impl Script {
                 }
             }
             if let Some(done) = current.take() {
-                script
-                    .insert(done)
-                    .map_err(|message| ParseError { file: file.to_string(), line: 0, message })?;
+                script.insert(done).map_err(|message| ParseError {
+                    file: file.to_string(),
+                    line: 0,
+                    message,
+                })?;
             }
         }
         Ok(script)
@@ -279,11 +317,16 @@ impl Script {
                     Op::Choice(opts) => {
                         for o in opts {
                             if !exists(&o.target) {
-                                problems.push(format!("{}: choice to missing scene {:?}", scene.id, o.target));
+                                problems.push(format!(
+                                    "{}: choice to missing scene {:?}",
+                                    scene.id, o.target
+                                ));
                             }
                         }
                     }
-                    Op::Cmd(Command::Goto(t)) | Op::Cmd(Command::If { target: t, .. }) if !exists(t) => {
+                    Op::Cmd(Command::Goto(t)) | Op::Cmd(Command::If { target: t, .. })
+                        if !exists(t) =>
+                    {
                         problems.push(format!("{}: jump to missing scene {t:?}", scene.id))
                     }
                     _ => {}
@@ -387,7 +430,11 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(scene: &str) -> Self {
-        Self { scene: scene.to_string(), pc: 0, jumps: 0 }
+        Self {
+            scene: scene.to_string(),
+            pc: 0,
+            jumps: 0,
+        }
     }
 
     fn jump(&mut self, target: &str) {
@@ -411,7 +458,10 @@ impl Runner {
             self.pc += 1;
             match op {
                 Op::Line { speaker, text } => {
-                    return Beat::Line { speaker: speaker.clone(), text: text.clone() };
+                    return Beat::Line {
+                        speaker: speaker.clone(),
+                        text: text.clone(),
+                    };
                 }
                 Op::Choice(opts) => {
                     let shown: Vec<(String, String)> = opts
@@ -426,7 +476,11 @@ impl Runner {
                 Op::Cmd(cmd) => match cmd {
                     Command::Flag(f) => ctx.set_flag(f, true),
                     Command::Unflag(f) => ctx.set_flag(f, false),
-                    Command::If { flag, target, negate } => {
+                    Command::If {
+                        flag,
+                        target,
+                        negate,
+                    } => {
                         if ctx.flag(flag) != *negate {
                             self.jump(target);
                         }

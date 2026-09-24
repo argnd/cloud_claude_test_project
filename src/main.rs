@@ -23,5 +23,9 @@ fn main() -> eframe::Result {
             .with_min_inner_size([960.0, 640.0]),
         ..Default::default()
     };
-    eframe::run_native("Emberdeep", options, Box::new(|cc| Ok(Box::new(app::App::new(cc)))))
+    eframe::run_native(
+        "Emberdeep",
+        options,
+        Box::new(|cc| Ok(Box::new(app::App::new(cc)))),
+    )
 }

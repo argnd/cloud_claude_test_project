@@ -6,8 +6,9 @@ year ago to tend the sacred flame — and learns what the flame has always been
 fed.
 
 - **A full story**: a prologue, five acts, three endings (one hidden behind
-  finding all twelve Memory Shards), ~1,000 lines of written dialogue across
-  167 scenes, four companions with their own arcs and quests.
+  finding all twelve Memory Shards), 975 lines (~16,000 words) of dialogue
+  across 167 scenes, four companions with their own arcs and quests. A first
+  playthrough runs 4–5 hours.
 - **Timeline battles**: a turn-order forecast (in the style of Final Fantasy
   X), four heroes with 8–10 skills each, seven elements with weaknesses to
   discover, 14 status effects, items, defend, flee, and an **Auto** command.
@@ -57,8 +58,9 @@ On Linux the sound needs the ALSA headers (`sudo apt install libasound2-dev`
 on Debian/Ubuntu); `cargo run --no-default-features` builds a silent version
 without them. Windows and macOS need nothing extra.
 
-An automated player can play the entire game through the real UI (title
-screen to ending) and reports how long each floor took:
+An automated player plays the entire game through the real UI, from the
+title screen to the true ending (about 2.4 hours of game time, a few
+minutes of real time), and reports how long each floor took:
 
 ```
 cargo test --profile bot playthrough -- --ignored --nocapture

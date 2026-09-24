@@ -13,7 +13,7 @@ use crate::data::enemies::{BattleId, EnemyId};
 use crate::data::heroes::HeroId;
 use crate::data::items::{ItemId, ItemKind, Special, Use};
 use crate::data::skills::{Power, SkillDef, SkillId, SkillKind, Target};
-use crate::data::{Affinity, Element, StatusKind, Stats};
+use crate::data::{Affinity, Element, Stats, StatusKind};
 use crate::gfx::sprites::Sprite;
 use crate::rpg::Hero;
 
@@ -82,19 +82,49 @@ impl Unit {
     }
 
     pub fn atk(&self) -> f32 {
-        self.eff(self.stats.atk, StatusKind::Might, StatusKind::Weak, 1.3, 0.7)
+        self.eff(
+            self.stats.atk,
+            StatusKind::Might,
+            StatusKind::Weak,
+            1.3,
+            0.7,
+        )
     }
     pub fn mag(&self) -> f32 {
-        self.eff(self.stats.mag, StatusKind::Focus, StatusKind::Weak, 1.3, 0.7)
+        self.eff(
+            self.stats.mag,
+            StatusKind::Focus,
+            StatusKind::Weak,
+            1.3,
+            0.7,
+        )
     }
     pub fn def(&self) -> f32 {
-        self.eff(self.stats.def, StatusKind::Shield, StatusKind::Sunder, 1.4, 0.65)
+        self.eff(
+            self.stats.def,
+            StatusKind::Shield,
+            StatusKind::Sunder,
+            1.4,
+            0.65,
+        )
     }
     pub fn res(&self) -> f32 {
-        self.eff(self.stats.res, StatusKind::Shield, StatusKind::Sunder, 1.4, 0.65)
+        self.eff(
+            self.stats.res,
+            StatusKind::Shield,
+            StatusKind::Sunder,
+            1.4,
+            0.65,
+        )
     }
     pub fn spd(&self) -> f32 {
-        self.eff(self.stats.spd, StatusKind::Haste, StatusKind::Slow, 1.5, 0.6)
+        self.eff(
+            self.stats.spd,
+            StatusKind::Haste,
+            StatusKind::Slow,
+            1.5,
+            0.6,
+        )
     }
 
     fn delay_for(&self, delay: u32) -> f32 {
@@ -139,23 +169,65 @@ impl Unit {
 pub enum Event {
     TurnStart(usize),
     /// Skill or item name banner over the actor.
-    Announce { actor: usize, text: String },
+    Announce {
+        actor: usize,
+        text: String,
+    },
     /// The actor steps toward a target (physical) or raises its hands (magic).
-    Lunge { actor: usize },
-    Cast { actor: usize },
-    Projectile { from: usize, to: usize, sprite: Sprite },
-    Effect { target: usize, sprite: Sprite },
-    Damage { target: usize, amount: i32, crit: bool, affinity: Affinity, element: Element },
-    Heal { target: usize, amount: i32 },
-    Mp { target: usize, amount: i32 },
-    Miss { target: usize },
-    StatusOn { target: usize, status: StatusKind },
+    Lunge {
+        actor: usize,
+    },
+    Cast {
+        actor: usize,
+    },
+    Projectile {
+        from: usize,
+        to: usize,
+        sprite: Sprite,
+    },
+    Effect {
+        target: usize,
+        sprite: Sprite,
+    },
+    Damage {
+        target: usize,
+        amount: i32,
+        crit: bool,
+        affinity: Affinity,
+        element: Element,
+    },
+    Heal {
+        target: usize,
+        amount: i32,
+    },
+    Mp {
+        target: usize,
+        amount: i32,
+    },
+    Miss {
+        target: usize,
+    },
+    StatusOn {
+        target: usize,
+        status: StatusKind,
+    },
     #[allow(dead_code)]
-    StatusOff { target: usize, status: StatusKind },
-    Down { target: usize },
-    Revive { target: usize },
-    Summoned { unit: usize },
-    Guard { actor: usize },
+    StatusOff {
+        target: usize,
+        status: StatusKind,
+    },
+    Down {
+        target: usize,
+    },
+    Revive {
+        target: usize,
+    },
+    Summoned {
+        unit: usize,
+    },
+    Guard {
+        actor: usize,
+    },
     Message(String),
     Sfx(Sfx),
     Shake(f32),
@@ -264,7 +336,11 @@ impl Battle {
         for i in 0..battle.units.len() {
             let jitter = battle.rng.random_range(0.0..1.0);
             let u = &mut battle.units[i];
-            let offset = if u.side == Side::Heroes { hero_offset } else { enemy_offset };
+            let offset = if u.side == Side::Heroes {
+                hero_offset
+            } else {
+                enemy_offset
+            };
             u.next_time = offset + u.delay_for(60) * jitter;
             if u.specials.contains(&Special::FirstStrike) {
                 u.next_time = 0.0;
@@ -277,7 +353,9 @@ impl Battle {
     fn name_duplicates(&mut self) {
         let letters = ['A', 'B', 'C', 'D', 'E', 'F'];
         for i in 0..self.units.len() {
-            let Some(enemy) = self.units[i].enemy else { continue };
+            let Some(enemy) = self.units[i].enemy else {
+                continue;
+            };
             let same: Vec<usize> = (0..self.units.len())
                 .filter(|&j| self.units[j].enemy == Some(enemy))
                 .collect();
@@ -304,7 +382,9 @@ impl Battle {
 
     pub fn dead(&self, side: Side) -> Vec<usize> {
         (0..self.units.len())
-            .filter(|&i| self.units[i].side == side && !self.units[i].alive() && self.units[i].hero.is_some())
+            .filter(|&i| {
+                self.units[i].side == side && !self.units[i].alive() && self.units[i].hero.is_some()
+            })
             .collect()
     }
 
@@ -426,7 +506,10 @@ impl Battle {
             let before = u.mp;
             u.mp = (u.mp + amount).min(u.max_mp);
             if u.mp > before {
-                events.push(Event::Mp { target: i, amount: u.mp - before });
+                events.push(Event::Mp {
+                    target: i,
+                    amount: u.mp - before,
+                });
             }
         }
 
@@ -445,7 +528,11 @@ impl Battle {
         self.units[i].statuses.retain(|&(_, t)| t > 0);
         if skip {
             let name = self.units[i].name.clone();
-            let what = if expired.contains(&StatusKind::Frozen) { "is frozen solid" } else { "is stunned" };
+            let what = if expired.contains(&StatusKind::Frozen) {
+                "is frozen solid"
+            } else {
+                "is stunned"
+            };
             events.push(Event::Message(format!("{name} {what}!")));
             events.push(Event::Pause(0.5));
         }
@@ -482,7 +569,10 @@ impl Battle {
                 events.push(Event::Guard { actor });
                 events.push(Event::Sfx(Sfx::Block));
                 if u.mp > before {
-                    events.push(Event::Mp { target: actor, amount: u.mp - before });
+                    events.push(Event::Mp {
+                        target: actor,
+                        amount: u.mp - before,
+                    });
                 }
                 events.push(Event::Pause(0.3));
                 70
@@ -532,10 +622,16 @@ impl Battle {
             Target::AllFoes => self.alive(side.other()),
             Target::AllAllies => self.alive(side),
             Target::Foe | Target::Ally | Target::DeadAlly => {
-                let wanted_side = if target == Target::Foe { side.other() } else { side };
+                let wanted_side = if target == Target::Foe {
+                    side.other()
+                } else {
+                    side
+                };
                 let want_alive = target != Target::DeadAlly;
                 let ok = |i: usize| {
-                    self.units.get(i).is_some_and(|u| u.side == wanted_side && u.alive() == want_alive)
+                    self.units
+                        .get(i)
+                        .is_some_and(|u| u.side == wanted_side && u.alive() == want_alive)
                 };
                 match choice {
                     Choice::Unit(i) if ok(i) => vec![i],
@@ -569,9 +665,18 @@ impl Battle {
             }
         }
         if skill != SkillId::Attack {
-            events.push(Event::Announce { actor, text: def.name.to_string() });
+            events.push(Event::Announce {
+                actor,
+                text: def.name.to_string(),
+            });
         }
-        let physical = matches!(def.kind, SkillKind::Damage { power: Power::Atk(_), .. });
+        let physical = matches!(
+            def.kind,
+            SkillKind::Damage {
+                power: Power::Atk(_),
+                ..
+            }
+        );
         if physical {
             events.push(Event::Lunge { actor });
         } else {
@@ -580,7 +685,11 @@ impl Battle {
 
         match def.kind {
             SkillKind::Damage { power, hits } => {
-                let element = if skill == SkillId::Attack { self.units[actor].attack_element() } else { def.element };
+                let element = if skill == SkillId::Attack {
+                    self.units[actor].attack_element()
+                } else {
+                    def.element
+                };
                 for _ in 0..hits {
                     for &t in &targets {
                         if !self.units[t].alive() {
@@ -603,7 +712,10 @@ impl Battle {
                             let u = &mut self.units[actor];
                             let gain = (dealt / 5).max(1).min(u.max_mp - u.mp);
                             u.mp += gain;
-                            events.push(Event::Mp { target: actor, amount: gain });
+                            events.push(Event::Mp {
+                                target: actor,
+                                amount: gain,
+                            });
                         }
                     }
                 }
@@ -612,8 +724,12 @@ impl Battle {
                 let mag = self.units[actor].mag();
                 for &t in &targets {
                     // Lifebloom (group heal with revive) raises the fallen first.
-                    events.push(Event::Effect { target: t, sprite: def.fx });
-                    let amount = ((mag * power) as i32 + flat) as f32 * self.rng.random_range(0.95..1.05);
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: def.fx,
+                    });
+                    let amount =
+                        ((mag * power) as i32 + flat) as f32 * self.rng.random_range(0.95..1.05);
                     self.restore_hp(t, amount as i32, events);
                 }
                 if skill == SkillId::Lifebloom {
@@ -626,7 +742,10 @@ impl Battle {
             }
             SkillKind::Revive { fraction } => {
                 for &t in &targets {
-                    events.push(Event::Effect { target: t, sprite: def.fx });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: def.fx,
+                    });
                     let amount = (self.units[t].max_hp as f32 * fraction) as i32;
                     self.revive(t, amount, events);
                 }
@@ -635,7 +754,10 @@ impl Battle {
             SkillKind::Cleanse => {
                 let mag = self.units[actor].mag();
                 for &t in &targets {
-                    events.push(Event::Effect { target: t, sprite: def.fx });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: def.fx,
+                    });
                     self.cleanse(t, events);
                     self.restore_hp(t, (mag * 0.6) as i32 + 20, events);
                 }
@@ -644,7 +766,10 @@ impl Battle {
             SkillKind::Status => {
                 events.push(Event::Sfx(def.sfx));
                 for &t in &targets {
-                    events.push(Event::Effect { target: t, sprite: def.fx });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: def.fx,
+                    });
                 }
             }
             SkillKind::Summon(enemy, count) => {
@@ -657,7 +782,9 @@ impl Battle {
                     let mut unit = enemy_unit(enemy, level);
                     unit.next_time = self.time + unit.delay_for(100);
                     self.units.push(unit);
-                    events.push(Event::Summoned { unit: self.units.len() - 1 });
+                    events.push(Event::Summoned {
+                        unit: self.units.len() - 1,
+                    });
                 }
                 self.name_duplicates();
             }
@@ -693,7 +820,11 @@ impl Battle {
         events: &mut Vec<Event>,
     ) -> i32 {
         if let Some(sprite) = def.projectile {
-            events.push(Event::Projectile { from: actor, to: t, sprite });
+            events.push(Event::Projectile {
+                from: actor,
+                to: t,
+                sprite,
+            });
         }
         let (a, d, p, physical) = match power {
             Power::Atk(p) => (self.units[actor].atk(), self.units[t].def(), p, true),
@@ -701,16 +832,27 @@ impl Battle {
         };
         // Blind and basic evasion only affect physical blows.
         if physical {
-            let miss = if self.units[actor].has(StatusKind::Blind) { 0.45 } else { 0.03 };
+            let miss = if self.units[actor].has(StatusKind::Blind) {
+                0.45
+            } else {
+                0.03
+            };
             if self.rng.random_bool(miss) {
                 events.push(Event::Miss { target: t });
                 events.push(Event::Sfx(Sfx::Miss));
                 return 0;
             }
         }
-        events.push(Event::Effect { target: t, sprite: def.fx });
+        events.push(Event::Effect {
+            target: t,
+            sprite: def.fx,
+        });
         let mut dmg = p * a * a / (a + d) * self.rng.random_range(0.9..1.1);
-        let crit_chance = if physical { 5 + def.crit as u32 + self.units[actor].crit_bonus() } else { def.crit as u32 };
+        let crit_chance = if physical {
+            5 + def.crit as u32 + self.units[actor].crit_bonus()
+        } else {
+            def.crit as u32
+        };
         let crit = self.rng.random_range(0..100) < crit_chance;
         if crit {
             dmg *= 1.6;
@@ -720,12 +862,11 @@ impl Battle {
         }
         let affinity = self.units[t].affinity(element);
         dmg *= affinity.multiplier();
-        if affinity == Affinity::Weak {
-            if let Some(enemy) = self.units[t].enemy {
-                if !self.discovered.contains(&(enemy, element)) {
-                    self.discovered.push((enemy, element));
-                }
-            }
+        if affinity == Affinity::Weak
+            && let Some(enemy) = self.units[t].enemy
+            && !self.discovered.contains(&(enemy, element))
+        {
+            self.discovered.push((enemy, element));
         }
         // Elements interact with states: fire thaws, frost puts out burns.
         if element == Element::Fire {
@@ -734,14 +875,22 @@ impl Battle {
         if element == Element::Frost {
             self.remove_status(t, StatusKind::Burn, events);
         }
-        let sfx = if crit || affinity == Affinity::Weak { Sfx::CritHit } else { def.sfx };
+        let sfx = if crit || affinity == Affinity::Weak {
+            Sfx::CritHit
+        } else {
+            def.sfx
+        };
         events.push(Event::Sfx(sfx));
         if affinity == Affinity::Absorb {
             let amount = (-dmg).max(1.0) as i32;
             self.restore_hp(t, amount, events);
             return 0;
         }
-        let amount = if affinity == Affinity::Immune { 0 } else { dmg.max(1.0) as i32 };
+        let amount = if affinity == Affinity::Immune {
+            0
+        } else {
+            dmg.max(1.0) as i32
+        };
         if crit {
             events.push(Event::Shake(6.0));
         }
@@ -753,15 +902,33 @@ impl Battle {
         amount
     }
 
-    fn hurt(&mut self, t: usize, amount: i32, crit: bool, affinity: Affinity, element: Element, events: &mut Vec<Event>) {
+    fn hurt(
+        &mut self,
+        t: usize,
+        amount: i32,
+        crit: bool,
+        affinity: Affinity,
+        element: Element,
+        events: &mut Vec<Event>,
+    ) {
         let u = &mut self.units[t];
         u.hp = (u.hp - amount).max(0);
-        events.push(Event::Damage { target: t, amount, crit, affinity, element });
+        events.push(Event::Damage {
+            target: t,
+            amount,
+            crit,
+            affinity,
+            element,
+        });
         if u.hp == 0 {
             u.statuses.clear();
             u.guarding = false;
             events.push(Event::Down { target: t });
-            events.push(Event::Sfx(if u.side == Side::Heroes { Sfx::PartyDown } else { Sfx::EnemyDie }));
+            events.push(Event::Sfx(if u.side == Side::Heroes {
+                Sfx::PartyDown
+            } else {
+                Sfx::EnemyDie
+            }));
         }
     }
 
@@ -772,7 +939,10 @@ impl Battle {
         }
         let gained = amount.max(0).min(u.max_hp - u.hp);
         u.hp += gained;
-        events.push(Event::Heal { target: t, amount: gained });
+        events.push(Event::Heal {
+            target: t,
+            amount: gained,
+        });
     }
 
     fn revive(&mut self, t: usize, amount: i32, events: &mut Vec<Event>) {
@@ -783,7 +953,10 @@ impl Battle {
         u.hp = amount.clamp(1, u.max_hp);
         u.next_time = self.time + 0.5;
         events.push(Event::Revive { target: t });
-        events.push(Event::Heal { target: t, amount: u.hp });
+        events.push(Event::Heal {
+            target: t,
+            amount: u.hp,
+        });
     }
 
     fn cleanse(&mut self, t: usize, events: &mut Vec<Event>) {
@@ -806,7 +979,14 @@ impl Battle {
         }
     }
 
-    fn try_status(&mut self, t: usize, status: StatusKind, chance: u8, turns: u8, events: &mut Vec<Event>) {
+    fn try_status(
+        &mut self,
+        t: usize,
+        status: StatusKind,
+        chance: u8,
+        turns: u8,
+        events: &mut Vec<Event>,
+    ) {
         let mut chance = chance as f32;
         let u = &self.units[t];
         if status.is_harmful() {
@@ -814,7 +994,11 @@ impl Battle {
                 chance *= 0.5;
             }
             if u.boss {
-                chance *= if matches!(status, StatusKind::Stun | StatusKind::Frozen) { 0.2 } else { 0.6 };
+                chance *= if matches!(status, StatusKind::Stun | StatusKind::Frozen) {
+                    0.2
+                } else {
+                    0.6
+                };
             }
             if status == StatusKind::Poison && u.affinity(Element::Nature) == Affinity::Immune {
                 chance = 0.0;
@@ -846,21 +1030,30 @@ impl Battle {
         let ItemKind::Consumable(effect) = def.kind else {
             return;
         };
-        events.push(Event::Announce { actor, text: def.name.to_string() });
+        events.push(Event::Announce {
+            actor,
+            text: def.name.to_string(),
+        });
         events.push(Event::Cast { actor });
         let side = self.units[actor].side;
         let one_ally = |b: &Battle| b.targets(actor, Target::Ally, choice);
         match effect {
             Use::Heal(amount) => {
                 for t in one_ally(self) {
-                    events.push(Event::Effect { target: t, sprite: Sprite::FxHeal });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: Sprite::FxHeal,
+                    });
                     self.restore_hp(t, amount, events);
                 }
                 events.push(Event::Sfx(Sfx::Heal));
             }
             Use::HealFull => {
                 for t in one_ally(self) {
-                    events.push(Event::Effect { target: t, sprite: Sprite::FxHeal });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: Sprite::FxHeal,
+                    });
                     let amount = self.units[t].max_hp;
                     self.restore_hp(t, amount, events);
                 }
@@ -868,24 +1061,36 @@ impl Battle {
             }
             Use::HealAll(amount) => {
                 for t in self.alive(side) {
-                    events.push(Event::Effect { target: t, sprite: Sprite::FxHeal });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: Sprite::FxHeal,
+                    });
                     self.restore_hp(t, amount, events);
                 }
                 events.push(Event::Sfx(Sfx::Heal));
             }
             Use::Mp(amount) => {
                 for t in one_ally(self) {
-                    events.push(Event::Effect { target: t, sprite: Sprite::FxBuff });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: Sprite::FxBuff,
+                    });
                     let u = &mut self.units[t];
                     let gain = amount.min(u.max_mp - u.mp).max(0);
                     u.mp += gain;
-                    events.push(Event::Mp { target: t, amount: gain });
+                    events.push(Event::Mp {
+                        target: t,
+                        amount: gain,
+                    });
                 }
                 events.push(Event::Sfx(Sfx::Heal));
             }
             Use::Revive(fraction) => {
                 for t in self.targets(actor, Target::DeadAlly, choice) {
-                    events.push(Event::Effect { target: t, sprite: Sprite::FxHeal });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: Sprite::FxHeal,
+                    });
                     let amount = (self.units[t].max_hp as f32 * fraction) as i32;
                     self.revive(t, amount, events);
                 }
@@ -893,7 +1098,10 @@ impl Battle {
             }
             Use::Cure => {
                 for t in one_ally(self) {
-                    events.push(Event::Effect { target: t, sprite: Sprite::FxHeal });
+                    events.push(Event::Effect {
+                        target: t,
+                        sprite: Sprite::FxHeal,
+                    });
                     self.cleanse(t, events);
                 }
                 events.push(Event::Sfx(Sfx::Heal));
@@ -907,20 +1115,24 @@ impl Battle {
             Use::DamageOne(element, amount, status) => {
                 for t in self.targets(actor, Target::Foe, choice) {
                     self.item_damage(t, element, amount, events);
-                    if let Some(s) = status {
-                        if self.units[t].alive() {
-                            self.try_status(t, s, 50, 1, events);
-                        }
+                    if let Some(s) = status
+                        && self.units[t].alive()
+                    {
+                        self.try_status(t, s, 50, 1, events);
                     }
                 }
             }
             Use::Escape => {
                 if self.can_flee() {
                     events.push(Event::Sfx(Sfx::Flee));
-                    events.push(Event::Message("A cloud of smoke — the party escapes!".into()));
+                    events.push(Event::Message(
+                        "A cloud of smoke — the party escapes!".into(),
+                    ));
                     self.outcome = Some(Outcome::Escaped);
                 } else {
-                    events.push(Event::Message("The smoke clears. There is no escape!".into()));
+                    events.push(Event::Message(
+                        "The smoke clears. There is no escape!".into(),
+                    ));
                 }
             }
             Use::Warp => {}
@@ -934,10 +1146,17 @@ impl Battle {
             Element::Frost => Sprite::FxFrost,
             _ => Sprite::FxExplosion,
         };
-        events.push(Event::Effect { target: t, sprite: fx });
+        events.push(Event::Effect {
+            target: t,
+            sprite: fx,
+        });
         let affinity = self.units[t].affinity(element);
         let dmg = (amount as f32 * affinity.multiplier() * self.rng.random_range(0.9..1.1)) as i32;
-        events.push(Event::Sfx(if element == Element::Fire { Sfx::Fire } else { Sfx::Frost }));
+        events.push(Event::Sfx(if element == Element::Fire {
+            Sfx::Fire
+        } else {
+            Sfx::Frost
+        }));
         if dmg < 0 {
             self.restore_hp(t, -dmg, events);
         } else {
@@ -1006,7 +1225,9 @@ impl Battle {
         let mut gold = 0;
         let mut items = Vec::new();
         for i in 0..self.units.len() {
-            let Some(enemy) = self.units[i].enemy else { continue };
+            let Some(enemy) = self.units[i].enemy else {
+                continue;
+            };
             let def = enemy.def();
             let level = self.units[i].level;
             xp += def.xp_at(level);
@@ -1022,7 +1243,12 @@ impl Battle {
 
     /// Average level of the enemies fought (for experience scaling).
     pub fn enemy_level(&self) -> u32 {
-        let levels: Vec<u32> = self.units.iter().filter(|u| u.enemy.is_some()).map(|u| u.level).collect();
+        let levels: Vec<u32> = self
+            .units
+            .iter()
+            .filter(|u| u.enemy.is_some())
+            .map(|u| u.level)
+            .collect();
         levels.iter().sum::<u32>() / levels.len().max(1) as u32
     }
 }

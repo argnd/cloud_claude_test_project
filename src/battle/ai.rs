@@ -91,12 +91,20 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
     let side = u.side;
     let allies = battle.alive(side);
     let dead = battle.dead(side);
-    let skills: Vec<SkillId> = u.skills.iter().copied().filter(|&s| u.can_afford(s)).collect();
+    let skills: Vec<SkillId> = u
+        .skills
+        .iter()
+        .copied()
+        .filter(|&s| u.can_afford(s))
+        .collect();
     let has_item = |item: ItemId| items.iter().any(|&(i, c)| i == item && c > 0);
 
     // Revive.
     if let Some(&fallen) = dead.first() {
-        if let Some(&s) = skills.iter().find(|s| matches!(s.def().kind, SkillKind::Revive { .. })) {
+        if let Some(&s) = skills
+            .iter()
+            .find(|s| matches!(s.def().kind, SkillKind::Revive { .. }))
+        {
             return Action::Skill(s, Choice::Unit(fallen));
         }
         if skills.contains(&SkillId::Lifebloom) {
@@ -109,22 +117,27 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
 
     // Heal.
     let ratio = |i: usize| battle.units[i].hp as f32 / battle.units[i].max_hp.max(1) as f32;
-    let hurt: Vec<usize> = allies.iter().copied().filter(|&i| ratio(i) < 0.45).collect();
+    let hurt: Vec<usize> = allies
+        .iter()
+        .copied()
+        .filter(|&i| ratio(i) < 0.45)
+        .collect();
     if !hurt.is_empty() {
-        let group = skills
-            .iter()
-            .copied()
-            .find(|s| matches!(s.def().kind, SkillKind::Heal { .. }) && s.def().target == Target::AllAllies);
-        if hurt.len() >= 2 {
-            if let Some(s) = group {
-                return Action::Skill(s, Choice::All);
-            }
-        }
-        let worst = *hurt.iter().min_by(|&&a, &&b| ratio(a).total_cmp(&ratio(b))).unwrap();
-        if let Some(&s) = skills
-            .iter()
-            .find(|s| matches!(s.def().kind, SkillKind::Heal { .. }) && s.def().target == Target::Ally)
+        let group = skills.iter().copied().find(|s| {
+            matches!(s.def().kind, SkillKind::Heal { .. }) && s.def().target == Target::AllAllies
+        });
+        if hurt.len() >= 2
+            && let Some(s) = group
         {
+            return Action::Skill(s, Choice::All);
+        }
+        let worst = *hurt
+            .iter()
+            .min_by(|&&a, &&b| ratio(a).total_cmp(&ratio(b)))
+            .unwrap();
+        if let Some(&s) = skills.iter().find(|s| {
+            matches!(s.def().kind, SkillKind::Heal { .. }) && s.def().target == Target::Ally
+        }) {
             return Action::Skill(s, Choice::Unit(worst));
         }
         if let Some(s) = group {
@@ -140,23 +153,25 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
     }
 
     // Cure a disabling ailment.
-    if skills.contains(&SkillId::Cleanse) {
-        if let Some(&t) = allies.iter().find(|&&i| {
-            battle.units[i]
-                .statuses
-                .iter()
-                .any(|&(s, _)| matches!(s, StatusKind::Poison | StatusKind::Burn | StatusKind::Slow | StatusKind::Weak))
-        }) {
-            return Action::Skill(SkillId::Cleanse, Choice::Unit(t));
-        }
+    if skills.contains(&SkillId::Cleanse)
+        && let Some(&t) = allies.iter().find(|&&i| {
+            battle.units[i].statuses.iter().any(|&(s, _)| {
+                matches!(
+                    s,
+                    StatusKind::Poison | StatusKind::Burn | StatusKind::Slow | StatusKind::Weak
+                )
+            })
+        })
+    {
+        return Action::Skill(SkillId::Cleanse, Choice::Unit(t));
     }
 
     // Low on MP: casters recover.
     if u.max_mp > 40 && (u.mp as f32) < u.max_mp as f32 * 0.15 {
-        if skills.contains(&SkillId::Siphon) {
-            if let Some(&foe) = battle.alive(side.other()).first() {
-                return Action::Skill(SkillId::Siphon, Choice::Unit(foe));
-            }
+        if skills.contains(&SkillId::Siphon)
+            && let Some(&foe) = battle.alive(side.other()).first()
+        {
+            return Action::Skill(SkillId::Siphon, Choice::Unit(foe));
         }
         for ether in [ItemId::Ether, ItemId::HiEther] {
             if has_item(ether) {
@@ -166,7 +181,11 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
     }
 
     // Tank: keep the taunt up in boss fights.
-    if battle.is_boss() && skills.contains(&SkillId::StandFast) && !u.has(StatusKind::Taunt) && allies.len() > 1 {
+    if battle.is_boss()
+        && skills.contains(&SkillId::StandFast)
+        && !u.has(StatusKind::Taunt)
+        && allies.len() > 1
+    {
         return Action::Skill(SkillId::StandFast, Choice::Unit(unit));
     }
 
@@ -175,23 +194,37 @@ pub fn auto_action(battle: &Battle, unit: usize, items: &[(ItemId, u32)]) -> Act
     if foes.is_empty() {
         return Action::Defend;
     }
-    let target = *foes
-        .iter()
-        .min_by_key(|&&i| battle.units[i].hp)
-        .unwrap();
-    let mut best = (Action::Skill(SkillId::Attack, Choice::Unit(target)), expected(battle, unit, SkillId::Attack, &foes, target));
-    let mp_reserve = if skills.iter().any(|s| s.def().is_heal_like()) { 0.35 } else { 0.0 };
+    let target = *foes.iter().min_by_key(|&&i| battle.units[i].hp).unwrap();
+    let mut best = (
+        Action::Skill(SkillId::Attack, Choice::Unit(target)),
+        expected(battle, unit, SkillId::Attack, &foes, target),
+    );
+    let mp_reserve = if skills.iter().any(|s| s.def().is_heal_like()) {
+        0.35
+    } else {
+        0.0
+    };
     for &s in &skills {
         let def = s.def();
-        if !matches!(def.kind, SkillKind::Damage { .. } | SkillKind::Drain { .. } | SkillKind::Siphon { .. }) {
+        if !matches!(
+            def.kind,
+            SkillKind::Damage { .. } | SkillKind::Drain { .. } | SkillKind::Siphon { .. }
+        ) {
             continue;
         }
-        if def.mp > 0 && (u.mp - def.mp) < (u.max_mp as f32 * mp_reserve) as i32 && !battle.is_boss() {
+        if def.mp > 0
+            && (u.mp - def.mp) < (u.max_mp as f32 * mp_reserve) as i32
+            && !battle.is_boss()
+        {
             continue;
         }
         let value = expected(battle, unit, s, &foes, target);
         if value > best.1 {
-            let choice = if def.target.is_group() { Choice::All } else { Choice::Unit(target) };
+            let choice = if def.target.is_group() {
+                Choice::All
+            } else {
+                Choice::Unit(target)
+            };
             best = (Action::Skill(s, choice), value);
         }
     }
@@ -207,7 +240,11 @@ fn expected(battle: &Battle, unit: usize, skill: SkillId, foes: &[usize], target
         _ => return 0.0,
     };
     let u = &battle.units[unit];
-    let element = if skill == SkillId::Attack { u.attack_element() } else { def.element };
+    let element = if skill == SkillId::Attack {
+        u.attack_element()
+    } else {
+        def.element
+    };
     let hit = |t: usize| {
         let f = &battle.units[t];
         let (a, d, p) = match power {
@@ -220,12 +257,19 @@ fn expected(battle: &Battle, unit: usize, skill: SkillId, foes: &[usize], target
         };
         (p * a * a / (a + d) * aff).min(f.hp as f32 * 1.2)
     };
-    let raw = if def.target.is_group() { foes.iter().map(|&t| hit(t)).sum() } else { hit(target) };
+    let raw = if def.target.is_group() {
+        foes.iter().map(|&t| hit(t)).sum()
+    } else {
+        hit(target)
+    };
     // Slightly prefer cheap actions.
     raw * hits - def.mp as f32 * 0.3
 }
 
 /// Consumable items the auto-battler is allowed to spend.
 pub fn is_auto_item(item: ItemId) -> bool {
-    matches!(item.def().kind, ItemKind::Consumable(Use::Heal(_) | Use::HealFull | Use::Revive(_) | Use::Mp(_)))
+    matches!(
+        item.def().kind,
+        ItemKind::Consumable(Use::Heal(_) | Use::HealFull | Use::Revive(_) | Use::Mp(_))
+    )
 }

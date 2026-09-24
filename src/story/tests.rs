@@ -60,10 +60,24 @@ fn runs_a_scene_with_commands_jumps_and_choices() {
     assert!(script.validate().is_empty(), "{:?}", script.validate());
     let mut ctx = Mock::default();
     let mut r = Runner::new("start");
-    assert_eq!(r.next(&script, &mut ctx), Beat::Line { speaker: "wren".into(), text: "Hello.".into() });
-    assert_eq!(r.next(&script, &mut ctx), Beat::Line { speaker: "brannoc".into(), text: "Stone and ember!".into() });
+    assert_eq!(
+        r.next(&script, &mut ctx),
+        Beat::Line {
+            speaker: "wren".into(),
+            text: "Hello.".into()
+        }
+    );
+    assert_eq!(
+        r.next(&script, &mut ctx),
+        Beat::Line {
+            speaker: "brannoc".into(),
+            text: "Stone and ember!".into()
+        }
+    );
     assert_eq!(ctx.given, vec![(ItemId::Tonic, 3)]);
-    let Beat::Choice(opts) = r.next(&script, &mut ctx) else { panic!() };
+    let Beat::Choice(opts) = r.next(&script, &mut ctx) else {
+        panic!()
+    };
     assert_eq!(opts.len(), 1, "flagged choice hidden");
     assert_eq!(ctx.joined, vec![HeroId::Brannoc]);
     r.choose(&opts[0].1);
@@ -83,17 +97,54 @@ fn reports_bad_lines() {
 /// Every scene id the engine triggers by name.
 pub fn required_scenes() -> Vec<String> {
     let mut ids: Vec<String> = [
-        "intro", "wake", "elder_first", "elder_confront", "inn_rest", "vaultgate_first", "waystone_first",
-        "mouser_found", "vex_pre", "brannoc_join", "gristlemaw_pre", "gristlemaw_post", "maelis_meet",
-        "curator_pre", "curator_post", "pip_meet", "mother_pre", "mother_post", "iron_warden_pre",
-        "iron_warden_post", "ilsa_lantern", "ilsa_pre", "ilsa_post", "aurelian_pre", "aurelian_phase2",
-        "final_choice", "ending_oath", "ending_dark", "ending_dawn", "credits",
-        "quest_lost_mouser_offer", "quest_lost_mouser_remind", "quest_lost_mouser_done",
-        "quest_smugglers_offer", "quest_smugglers_remind", "quest_smugglers_done",
-        "quest_holy_relics_offer", "quest_holy_relics_remind", "quest_holy_relics_done",
-        "quest_tobins_glowcap_offer", "quest_tobins_glowcap_remind", "quest_tobins_glowcap_done",
-        "quest_starmetal_offer", "quest_starmetal_remind", "quest_starmetal_done",
-        "quest_lost_pages_done", "quest_everbloom_done", "quest_crew_tags_done",
+        "intro",
+        "wake",
+        "elder_first",
+        "elder_confront",
+        "inn_rest",
+        "vaultgate_first",
+        "waystone_first",
+        "mouser_found",
+        "vex_pre",
+        "brannoc_join",
+        "gristlemaw_pre",
+        "gristlemaw_post",
+        "maelis_meet",
+        "curator_pre",
+        "curator_post",
+        "pip_meet",
+        "mother_pre",
+        "mother_post",
+        "iron_warden_pre",
+        "iron_warden_post",
+        "ilsa_lantern",
+        "ilsa_pre",
+        "ilsa_post",
+        "aurelian_pre",
+        "aurelian_phase2",
+        "final_choice",
+        "ending_oath",
+        "ending_dark",
+        "ending_dawn",
+        "credits",
+        "quest_lost_mouser_offer",
+        "quest_lost_mouser_remind",
+        "quest_lost_mouser_done",
+        "quest_smugglers_offer",
+        "quest_smugglers_remind",
+        "quest_smugglers_done",
+        "quest_holy_relics_offer",
+        "quest_holy_relics_remind",
+        "quest_holy_relics_done",
+        "quest_tobins_glowcap_offer",
+        "quest_tobins_glowcap_remind",
+        "quest_tobins_glowcap_done",
+        "quest_starmetal_offer",
+        "quest_starmetal_remind",
+        "quest_starmetal_done",
+        "quest_lost_pages_done",
+        "quest_everbloom_done",
+        "quest_crew_tags_done",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -111,7 +162,19 @@ pub fn required_scenes() -> Vec<String> {
     for n in 2..=5 {
         ids.push(format!("town_return_{n}"));
     }
-    for npc in ["elder", "bess", "dagna", "fen", "oriel", "rennick", "hesta", "tobin", "villager_a", "villager_b", "guard"] {
+    for npc in [
+        "elder",
+        "bess",
+        "dagna",
+        "fen",
+        "oriel",
+        "rennick",
+        "hesta",
+        "tobin",
+        "villager_a",
+        "villager_b",
+        "guard",
+    ] {
         for stage in 1..=5 {
             ids.push(format!("npc_{npc}_{stage}"));
         }
@@ -124,6 +187,9 @@ fn the_game_script_is_complete_and_consistent() {
     let script = Script::parse_files(STORY_FILES).unwrap_or_else(|e| panic!("{e}"));
     let problems = script.validate();
     assert!(problems.is_empty(), "{}", problems.join("\n"));
-    let missing: Vec<String> = required_scenes().into_iter().filter(|id| !script.has(id)).collect();
+    let missing: Vec<String> = required_scenes()
+        .into_iter()
+        .filter(|id| !script.has(id))
+        .collect();
     assert!(missing.is_empty(), "missing scenes: {missing:?}");
 }
