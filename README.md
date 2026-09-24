@@ -59,7 +59,7 @@ on Debian/Ubuntu); `cargo run --no-default-features` builds a silent version
 without them. Windows and macOS need nothing extra.
 
 An automated player plays the entire game through the real UI, from the
-title screen to the true ending (about 2.4 hours of game time, a few
+title screen to the true ending (about 2.5 hours of game time, a few
 minutes of real time), and reports how long each floor took:
 
 ```

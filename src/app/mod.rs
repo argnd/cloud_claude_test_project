@@ -235,6 +235,28 @@ impl App {
         self.fade = 1.0;
     }
 
+    /// After a defeat: Bess finds the party at the Vaultgate. Levels, items
+    /// and story progress stay; half the gold is gone.
+    fn wake_in_town(&mut self) {
+        let Some(game) = &mut self.game else {
+            self.go_to_title();
+            return;
+        };
+        game.heal_all();
+        game.gold /= 2;
+        game.pending.clear();
+        self.battle = None;
+        self.overlay = None;
+        self.dialogues.clear();
+        self.after.clear();
+        self.screen = Screen::Playing;
+        self.go_to_town(true);
+        self.explore
+            .notice("Bess found you at the Vaultgate and carried you home.");
+        self.explore
+            .notice("Half your gold is gone. Rest, re-arm, and try again.");
+    }
+
     fn restore_music(&mut self) {
         let Some(game) = &self.game else { return };
         let track = if game.world.place == Place::Town && game.act() >= 3 {
@@ -1031,6 +1053,7 @@ impl App {
                     None => self.go_to_title(),
                 },
                 GameOverOut::Title => self.go_to_title(),
+                GameOverOut::Wake => self.wake_in_town(),
                 GameOverOut::None => {}
             },
             Screen::Ending(view) => {

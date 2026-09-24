@@ -476,7 +476,8 @@ fn dress(world: &mut World, biome: Biome, rooms: &[Room], start: (i32, i32), rng
         let n = rng.random_range(0..3);
         for _ in 0..n {
             let p = tiles[rng.random_range(0..tiles.len())];
-            if world.entity_at(p).is_some() {
+            // Scenery goes on plain floor only: never on stairs or the start.
+            if world.entity_at(p).is_some() || world.tile(p) != Tile::Floor || p == start {
                 continue;
             }
             let (sprite, light) = match biome {
@@ -535,7 +536,14 @@ fn dress(world: &mut World, biome: Biome, rooms: &[Room], start: (i32, i32), rng
                     world.entity_at(p).is_none() && world.tile(p) == Tile::Floor
                 };
                 if ok {
+                    // Lava is a wall you can see through: only where the
+                    // floor stays in one piece (braziers included).
+                    let before = reachable_count(world, start, None);
                     world.set(p, pool);
+                    if pool == Tile::Lava && reachable_count(world, start, None) + 1 != before {
+                        world.set(p, Tile::Floor);
+                        continue;
+                    }
                     done += 1;
                 }
             }

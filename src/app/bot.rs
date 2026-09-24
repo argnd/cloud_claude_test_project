@@ -448,6 +448,9 @@ fn playthrough() {
             report += &line;
             last_floor = floor;
         }
+        if game.world.place == Place::Town {
+            shop(game);
+        }
         equip_best(game);
         if d.app.explore.moving() || cooldown > 0 {
             d.frame(None);

@@ -429,6 +429,8 @@ pub struct GameOverView {
 
 pub enum GameOverOut {
     None,
+    /// Wake in town with levels and items kept, half the gold lost.
+    Wake,
     Retry,
     Title,
 }
@@ -479,11 +481,12 @@ impl GameOverView {
         );
         let rect = Rect::from_center_size(
             pos2(screen.center().x, screen.top() + screen.height() * 0.62),
-            vec2(440.0, 130.0),
+            vec2(520.0, 164.0),
         );
         gfx::panel(painter, rect);
         let rows = vec![
-            Row::new("Rise again (last save)").enabled(save::any_save().is_some()),
+            Row::new("Wake in Hollowmere").right("keep levels, lose half your gold"),
+            Row::new("Load the last save").enabled(save::any_save().is_some()),
             Row::new("Return to title"),
         ];
         let r = widgets::list(
@@ -498,8 +501,9 @@ impl GameOverView {
         );
         sfx(audio, &r);
         match r.picked {
-            Some(0) => GameOverOut::Retry,
-            Some(1) => GameOverOut::Title,
+            Some(0) => GameOverOut::Wake,
+            Some(1) => GameOverOut::Retry,
+            Some(2) => GameOverOut::Title,
             _ => GameOverOut::None,
         }
     }

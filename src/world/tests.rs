@@ -47,7 +47,7 @@ fn the_town_is_well_formed() {
 fn every_floor_is_connected_and_populated() {
     let flags = BTreeSet::new();
     for n in 1..=LAST_FLOOR {
-        for seed in [1u64, 77, 2024, 31337] {
+        for seed in 0..16u64 {
             let world = floor::build(n, seed, &flags);
             let monsters = world
                 .entities
@@ -71,6 +71,16 @@ fn every_floor_is_connected_and_populated() {
                     .find(|&p| world.tile(p) == Tile::Stairs)
                     .expect("stairs");
                 assert!(reachable(&world, stairs), "floor {n}: stairs unreachable");
+                let on_stairs: Vec<&EntityKind> = world
+                    .entities
+                    .iter()
+                    .filter(|e| e.pos == stairs && !matches!(e.kind, EntityKind::Boss { .. }))
+                    .map(|e| &e.kind)
+                    .collect();
+                assert!(
+                    on_stairs.is_empty(),
+                    "floor {n}: {on_stairs:?} on the stairs"
+                );
             }
             let bosses = world
                 .entities

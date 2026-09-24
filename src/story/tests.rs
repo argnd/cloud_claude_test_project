@@ -193,3 +193,33 @@ fn the_game_script_is_complete_and_consistent() {
         .collect();
     assert!(missing.is_empty(), "missing scenes: {missing:?}");
 }
+
+/// Runs every scene in the script against a real game, following the first
+/// choice and treating battles as won, so every command executes at least
+/// once against real state (inventory, party, quests, flags).
+#[test]
+fn every_scene_runs_against_a_real_game() {
+    use crate::game::{Difficulty, Game};
+    let script = Script::parse_files(STORY_FILES).unwrap();
+    let mut ids: Vec<&String> = script.scenes.keys().collect();
+    ids.sort();
+    for id in ids {
+        let mut game = Game::new(Difficulty::Normal, 1);
+        game.enter_floor(1);
+        let mut runner = Runner::new(id);
+        let mut beats = 0;
+        loop {
+            beats += 1;
+            assert!(beats < 500, "scene {id} never ends");
+            match runner.next(&script, &mut game) {
+                Beat::Line { speaker, text } => {
+                    assert!(!text.is_empty(), "{id}: empty line from {speaker}");
+                }
+                Beat::Choice(opts) => runner.choose(&opts[0].1),
+                Beat::Battle(_) => {}
+                Beat::Ending(_) | Beat::Done => break,
+            }
+        }
+        assert!(game.party.len() <= 4, "{id}: party grew past four");
+    }
+}

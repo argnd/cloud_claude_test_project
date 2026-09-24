@@ -120,7 +120,7 @@ line of dialogue in a fraction of a second), never takes a turn by hand
 | Act II done (floor 9) | ~48 min |
 | Act III done (floor 13) | ~70 min |
 | Act IV done (floor 17) | ~99 min |
-| Credits (true ending) | ~2.4 h |
+| Credits (true ending) | ~2.4–2.7 h |
 
 A person reading ~16,000 words of dialogue, choosing battle commands, and
 shopping between acts adds well over an hour on top: the expected first
