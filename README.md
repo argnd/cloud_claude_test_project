@@ -58,6 +58,14 @@ On Linux the sound needs the ALSA headers (`sudo apt install libasound2-dev`
 on Debian/Ubuntu); `cargo run --no-default-features` builds a silent version
 without them. Windows and macOS need nothing extra.
 
+**"This file may be dangerous" warnings.** Chrome, Google Drive and Gmail
+(Google Safe Browsing) and Windows SmartScreen warn about any `.exe` that
+is unsigned and new to them: the warning is about reputation, not about
+anything found in the file. The exe carries version information, an icon
+and a manifest; to stop the warnings, sign it with a code-signing
+certificate, or share the source (or a zip of the exe) instead of a bare
+`.exe`. Gmail rejects `.exe` files in any form.
+
 An automated player plays the entire game through the real UI, from the
 title screen to the true ending (about 2.5 hours of game time, a few
 minutes of real time), and reports how long each floor took:
